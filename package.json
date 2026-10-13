@@ -36,9 +36,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Lokeshsri11/arkus.git"
+    "url": "https://github.com/Sors-Co-Org/Arkus.git"
   },
-  "homepage": "https://github.com/Lokeshsri11/arkus#readme",
+  "homepage": "https://github.com/Sors-Co-Org/Arkus#readme",
   "scripts": {
     "dev": "next dev -p 3600",
     "build": "prisma generate && node scripts/schema-sql.mjs && next build --webpack",
