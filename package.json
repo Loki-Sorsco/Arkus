@@ -13,6 +13,7 @@
     "!.next/dev",
     "!.next/standalone",
     "!.next/trace",
+    "!.next/node_modules",
     "public",
     "prisma/schema.sql",
     "prisma/schema.prisma",
@@ -40,7 +41,7 @@
   "homepage": "https://github.com/Lokeshsri11/arkus#readme",
   "scripts": {
     "dev": "next dev -p 3600",
-    "build": "prisma generate && node scripts/schema-sql.mjs && next build",
+    "build": "prisma generate && node scripts/schema-sql.mjs && next build --webpack",
     "start": "node bin/arkus.mjs",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",

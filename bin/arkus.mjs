@@ -2,6 +2,7 @@
 // `npx arkus` — start Arkus on this machine. Creates ~/.arkus (metadata db, secret key, cloned repos),
 // applies the schema, starts the prebuilt Next server bound to 127.0.0.1 on a free port, opens the browser.
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -25,9 +26,11 @@ const [major, minor] = process.versions.node.split(".").map(Number);
 if (major < 22 || (major === 22 && minor < 5)) { console.error(`Arkus needs Node 22.5 or newer (you have ${process.versions.node}).`); process.exit(1); }
 
 const pkgDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const nextBin = path.join(pkgDir, "node_modules", "next", "dist", "bin", "next");
+// `next` may be hoisted above the package (npx installs), so resolve it the way Node would.
+let nextBin = "";
+try { nextBin = createRequire(path.join(pkgDir, "package.json")).resolve("next/dist/bin/next"); } catch { /* reported below */ }
 if (!fs.existsSync(path.join(pkgDir, ".next", "BUILD_ID"))) { console.error("This copy of Arkus has no production build. Run `npm run build` in the repo, or install from npm."); process.exit(1); }
-if (!fs.existsSync(nextBin)) { console.error("Dependencies are missing. Run `npm install` in the Arkus folder."); process.exit(1); }
+if (!nextBin) { console.error("Dependencies are missing. Run `npm install` in the Arkus folder."); process.exit(1); }
 
 const dataDir = path.resolve(opt("--data", path.join(os.homedir(), ".arkus")));
 fs.mkdirSync(path.join(dataDir, "repos"), { recursive: true });
