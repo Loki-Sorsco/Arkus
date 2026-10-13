@@ -3,8 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { listDirs } from "@/lib/arkus/fs";
 import { bad, ok } from "../_util";
+import { isCloud } from "@/lib/auth";
 
 export async function GET(req: Request) {
+  if (isCloud()) return bad("Local folders are not available in hosted Arkus", 403);
   const u = new URL(req.url);
   const home = os.homedir();
   const dir = u.searchParams.get("dir") || path.join(home, "Downloads");

@@ -2,6 +2,7 @@
 // (test -> save -> introspect -> snapshot -> activity), re-test, re-sync with diff, removal.
 // RULE: the connection url never leaves this module in plaintext except into dbconn's drivers.
 import { prisma, j } from "@/lib/db";
+import { isCloud } from "../auth";
 import { openConnection, parseDbUrl, redact, testConnection, type DbConfig, type Engine, type TestResult } from "./dbconn";
 import { introspect } from "./introspect";
 import { loadSchemaSnapshotTables, persistSchemaSnapshot, type SchemaSnapshotInfo } from "./schemastore";
@@ -27,6 +28,7 @@ export const isEnv = (e: unknown): e is (typeof ENVS)[number] => typeof e === "s
 
 function buildConfig(engine: Engine | undefined, url: string, schemaOnly: boolean, local?: boolean): { config: DbSourceConfig; engine: Engine; display: string } {
   const p = parseDbUrl(url, engine);
+  if (isCloud() && p.engine === "sqlite") throw new Error("SQLite files on the server are not available in hosted Arkus. Connect a Postgres or MySQL database instead.");
   const config: DbSourceConfig = { engine: p.engine, urlEnc: encrypt(url), display: p.display, schemaOnly, host: p.host, port: p.port, database: p.database, user: p.user, file: p.file, local };
   return { config, engine: p.engine, display: p.display };
 }

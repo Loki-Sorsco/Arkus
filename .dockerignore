@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.scratch
+.repos
+prisma/*.db
+prisma/*.db-journal
+.env
+.env.*
+design
+fixtures

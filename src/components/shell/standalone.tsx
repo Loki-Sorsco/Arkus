@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cx } from "@/lib/ui";
 import { Icon } from "@/components/ui";
+import { signOut, useMe } from "@/lib/me";
 
 export const ArkusMark = ({ size = 24 }: { size?: number }) => (
   <span className="rounded-[6px] bg-accent text-bg-deep inline-flex items-center justify-center flex-none" style={{ width: size, height: size }}>
@@ -22,6 +23,7 @@ export function StandaloneShell({ title, back, children, right, width = 1040 }: 
         {title && <><span className="text-dim">/</span><span className="text-[12.5px] text-text-2 truncate">{title}</span></>}
         <div className="flex-1" />
         {right && <div className="flex items-center gap-2 flex-none min-w-0">{right}</div>}
+        <UserMenu />
       </header>
       <div className="flex-1 min-h-0 overflow-auto relative">
         <div aria-hidden className="absolute inset-0 dots opacity-70 pointer-events-none" style={{ maskImage: "radial-gradient(ellipse 70% 60% at 50% 0%, #000 20%, transparent 100%)", WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 50% 0%, #000 20%, transparent 100%)" }} />
@@ -77,6 +79,20 @@ export function BigStat({ value, label }: { value: ReactNode; label: string }) {
     <div className="flex flex-col items-center gap-1 min-w-[120px]">
       <span className="prose text-[34px] font-semibold tracking-tight text-text leading-none tabular-nums">{value}</span>
       <span className="font-mono text-[10px] uppercase tracking-[.25em] text-dim">{label}</span>
+    </div>
+  );
+}
+
+/** Avatar + sign out (hosted mode only; local mode renders nothing). */
+export function UserMenu({ compact }: { compact?: boolean }) {
+  const me = useMe();
+  if (!me?.cloud || !me.user) return null;
+  const u = me.user;
+  return (
+    <div className="flex items-center gap-2 pl-2 ml-1 border-l border-border">
+      {u.image ? <span className="w-5 h-5 rounded-full bg-surface-3 bg-cover bg-center flex-none" style={{ backgroundImage: `url(${u.image})` }} aria-hidden /> : <span className="w-5 h-5 rounded-full bg-surface-3 text-[10px] flex items-center justify-center text-muted">{(u.name || u.email || "?").slice(0, 1).toUpperCase()}</span>}
+      {!compact && <span className="text-[12px] text-muted truncate max-w-[160px]" title={u.email || undefined}>{u.name || u.email}</span>}
+      <button className="btn-subtle btn-xs" onClick={() => void signOut()} title="Sign out">Sign out</button>
     </div>
   );
 }

@@ -56,3 +56,4 @@ prisma/dev.db*
 
 # generated at build
 prisma/schema.sql
+prisma/schema.postgres.prisma

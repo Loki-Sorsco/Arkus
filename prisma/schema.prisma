@@ -10,8 +10,31 @@ datasource db {
 }
 
 // One software system. mode: "connected" (imported existing code) | "designed" (new project from an idea)
+// Accounts (cloud mode only; local mode uses the implicit owner "local").
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sessions  Session[]
+}
+
+model Session {
+  token     String   @id
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?
+
+  @@index([userId])
+}
+
 model Project {
   id        String   @id @default(cuid())
+  ownerId   String   @default("local") // User.id in cloud mode; "local" for the npx tool
   name      String
   slug      String   @unique
   mode      String   @default("connected")
@@ -31,6 +54,8 @@ model Project {
   writeups   Writeup[]
   blueprints Blueprint[]
   overrides  Override[]
+
+  @@index([ownerId])
 }
 
 // A connected thing: repo folder, database connection, (later) health source. Per environment.

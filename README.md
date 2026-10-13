@@ -40,6 +40,25 @@ npm run dev                 # http://localhost:3600
 npm run build && npm start  # production build, then the same launcher users get
 ```
 
+## Hosted mode (sign in with Google)
+
+The same code runs as a multi-user web app: set `ARKUS_MODE=cloud` and users sign in with Google. Each user
+gets their own projects (imported from git URLs and cloned on the server), their own encrypted database
+credentials, GitHub token and Groq key. Local-folder import and the VS Code link are hidden in this mode.
+
+```bash
+cp .env.cloud.example .env.cloud   # fill in ARKUS_URL, secrets, Google OAuth client
+docker compose --env-file .env.cloud up -d --build
+```
+
+On Dokploy: create a Compose application from this repo, paste the same variables into Environment, and
+point your domain at port 3000. The entrypoint applies the Postgres schema on every start. Google OAuth:
+create a Web client in Google Cloud Console with the authorised redirect URI
+`https://<your-domain>/api/auth/google/callback`.
+
+Metadata lives in Postgres (`User`, `Session`, `Project.ownerId`, …); repos in the `/data/repos` volume.
+Arkus never stores rows from users' databases.
+
 ## What is supported today
 
 | Area | Coverage |

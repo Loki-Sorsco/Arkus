@@ -7,6 +7,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { ApiError, api, cx, streamEvents, useApi } from "@/lib/ui";
 import { Chip, Dot, Field, Icon, Spinner, Toggle } from "@/components/ui";
 import { BigStat, Headline, Prompt, StandaloneShell, Terminal, TermTabs } from "@/components/shell/standalone";
+import { useMe } from "@/lib/me";
 import { GithubSaved, GithubTokenField, useGithubAccess } from "@/components/screens/github-access";
 
 type Log = { t: number; stage: string; msg: string; level: "info" | "warn" | "error" | "done" };
@@ -21,6 +22,9 @@ function Import() {
   const existing = sp.get("project");
   const prefillUrl = sp.get("url") || "";
   const [mode, setMode] = useState<"folder" | "git">(prefillUrl ? "git" : "folder");
+  const me = useMe();
+  const cloud = !!me?.cloud;
+  useEffect(() => { if (cloud) setMode("git"); }, [cloud]);
   const [dir, setDir] = useState<string>("");
   const [picked, setPicked] = useState<string>("");
   const [gitUrl, setGitUrl] = useState(prefillUrl);
@@ -33,7 +37,7 @@ function Import() {
   const [result, setResult] = useState<{ stats: Record<string, number>; unresolved: { message: string; kind: string }[]; slug: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const listing = useApi<Dirs>(`/api/fs${dir ? `?dir=${encodeURIComponent(dir)}` : ""}`);
+  const listing = useApi<Dirs>(cloud ? null : `/api/fs${dir ? `?dir=${encodeURIComponent(dir)}` : ""}`);
   const logRef = useRef<HTMLDivElement>(null);
   useEffect(() => { logRef.current?.scrollTo({ top: 1e9 }); }, [log]);
 
@@ -77,7 +81,7 @@ function Import() {
           sub={existing ? "The map is rebuilt from the current code. Confirmed bindings and notes are kept." : "Secrets are never read, nothing is modified, and you can remove the project any time."} />
 
         {!stage && (
-          <Terminal label="Source" right={<TermTabs value={mode} onChange={setMode} items={[{ id: "folder", label: "folder" }, { id: "git", label: "git url" }]} />}>
+          <Terminal label="Source" right={<TermTabs value={mode} onChange={setMode} items={cloud ? [{ id: "git", label: "git url" }] : [{ id: "folder", label: "folder" }, { id: "git", label: "git url" }]} />}>
             <div className="flex flex-col gap-4">
               {mode === "folder" ? (
                 <>

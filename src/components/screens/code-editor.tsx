@@ -18,6 +18,7 @@ import { useWorkspace } from "@/components/shell/workspace";
 import { arkusTheme } from "./cm-theme";
 import { Chip, Icon, Kbd, Spinner, useToast } from "@/components/ui";
 import { api, ApiError, cx } from "@/lib/ui";
+import { useMe } from "@/lib/me";
 
 type FileDoc = { path: string; content: string; hash: string; size: number; language: string; readOnly: boolean; reason?: string };
 export type EditorCursor = { line: number; col: number; language: string; file: string };
@@ -72,7 +73,8 @@ export function vscodeHref(rootPath: string, file: string, line?: number) {
 
 export function OpenInEditorLink({ file, line, className, label = "VS Code" }: { file: string; line?: number; className?: string; label?: string }) {
   const { project } = useWorkspace();
-  if (!project.rootPath) return null;
+  const me = useMe();
+  if (!project.rootPath || me?.cloud) return null;
   return <a href={vscodeHref(project.rootPath, file, line)} className={cx("btn-subtle btn-xs", className)} title={`Open in VS Code: ${absolutePath(project.rootPath, file)}`}>{Icon.external({ size: 12 })} {label}</a>;
 }
 
@@ -145,7 +147,7 @@ export function CodeEditorPane({ file, line, active = true, onDirty, onSaved, on
           {doc?.readOnly && <Chip tone="amber" title={doc.reason}>read only</Chip>}
           {dirty && <span className="inline-flex items-center gap-1.5 text-[11.5px] text-amber"><span className="w-1.5 h-1.5 rounded-full bg-amber" /> modified</span>}
           <span className="flex-1" />
-          {project.rootPath && <a href={vscodeHref(project.rootPath, file, line)} className="btn-subtle btn-xs" title="Open this file in VS Code">{Icon.external({ size: 12 })} VS Code</a>}
+          <OpenInEditorLink file={file} line={line} />
           <button className={cx("btn-xs", dirty ? "btn-primary" : "btn-subtle")} disabled={!dirty || saving || !doc || doc.readOnly} onClick={() => void save()} title="Save (Ctrl S)">{saving ? <Spinner /> : Icon.check({ size: 12 })} Save <Kbd>⌃S</Kbd></button>
         </div>
       )}

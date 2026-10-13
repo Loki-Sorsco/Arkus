@@ -1,7 +1,11 @@
 import { prisma, j } from "../db";
 import { aiReady } from "../llm";
-export function resolveProject(idOrSlug: string) {
-  return prisma.project.findFirst({ where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] } });
+import { currentUser } from "../auth";
+/** The project by id or slug, only if the current user owns it (cloud) — local mode owns everything. */
+export async function resolveProject(idOrSlug: string) {
+  const u = await currentUser();
+  if (!u) return null;
+  return prisma.project.findFirst({ where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }], ownerId: u.id } });
 }
 export const shapePlan = (p: { changes: string; decisions: string; impact: string; checks: string; comments: string } & Record<string, unknown>) => ({ ...p, changes: j(p.changes, []), decisions: j(p.decisions, {}), impact: j(p.impact, {}), checks: j(p.checks, []), comments: j(p.comments, []) });
 

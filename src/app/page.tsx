@@ -2,10 +2,11 @@
 // Start — hero (open a folder / analyse a repo), a stat strip, then the projects as cards.
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, cx, fmtNum, timeAgo, useApi } from "@/lib/ui";
 import { Chip, Icon, Spinner, useToast } from "@/components/ui";
 import { BigStat, Headline, Prompt, StandaloneShell, Terminal, TermTabs } from "@/components/shell/standalone";
+import { useMe } from "@/lib/me";
 
 type P = { id: string; name: string; slug: string; mode: string; status: string; rootPath: string | null; stack: { summary?: string }; plans: number; lastIndexed: string | null; stats: { endpoints?: number; screens?: number; tables?: number }; dbConnected?: boolean };
 
@@ -23,6 +24,9 @@ export default function Start() {
   };
   const empty = data && !data.length;
   const totals = (data || []).reduce((t, p) => ({ pages: t.pages + (p.stats?.screens || 0), apis: t.apis + (p.stats?.endpoints || 0), tables: t.tables + (p.stats?.tables || 0) }), { pages: 0, apis: 0, tables: 0 });
+  const me = useMe();
+  const cloud = !!me?.cloud;
+  useEffect(() => { if (cloud) setTab("github"); }, [cloud]);
   const analyse = () => { const u = repo.trim(); if (u) router.push(`/import?url=${encodeURIComponent(u)}`); };
 
   return (
@@ -33,7 +37,7 @@ export default function Start() {
           <div aria-hidden className="absolute -top-10 left-1/2 -translate-x-1/2 w-[720px] h-[360px] rounded-full pointer-events-none" style={{ background: "radial-gradient(ellipse at center, rgba(52,211,153,.10), transparent 65%)" }} />
           <Headline a="See your whole app." b="Change it safely." sub="Arkus reads the code and the database on this machine and draws pages → APIs → tables. Local only; nothing leaves your laptop." className="relative" />
 
-          <Terminal className="relative w-full max-w-[640px] shadow-[0_24px_64px_rgba(0,0,0,.45)]" right={<TermTabs value={tab} onChange={setTab} items={[{ id: "folder", label: "folder" }, { id: "github", label: "github" }]} />}>
+          <Terminal className="relative w-full max-w-[640px] shadow-[0_24px_64px_rgba(0,0,0,.45)]" right={<TermTabs value={tab} onChange={setTab} items={cloud ? [{ id: "github", label: "github" }] : [{ id: "folder", label: "folder" }, { id: "github", label: "github" }]} />}>
             {tab === "folder" ? (
               <Link href="/import" className="group flex items-center gap-3 h-12 px-4 rounded-[7px] border border-border bg-bg-deep hover:border-accent/60 transition text-left">
                 <Prompt />

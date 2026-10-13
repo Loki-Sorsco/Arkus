@@ -43,6 +43,9 @@ try {
   const sql = fs.readFileSync(path.join(pkgDir, "prisma", "schema.sql"), "utf8");
   db.exec("PRAGMA journal_mode = WAL;");
   db.exec(sql);
+  // Small forward migrations for databases created by earlier versions (schema.sql only adds tables).
+  const cols = (t) => db.prepare(`PRAGMA table_info("${t}")`).all().map((c) => c.name);
+  if (!cols("Project").includes("ownerId")) db.exec(`ALTER TABLE "Project" ADD COLUMN "ownerId" TEXT NOT NULL DEFAULT 'local'; CREATE INDEX IF NOT EXISTS "Project_ownerId_idx" ON "Project"("ownerId");`);
   db.close();
 } catch (e) { console.error("Could not prepare the Arkus database:", e.message); process.exit(1); }
 

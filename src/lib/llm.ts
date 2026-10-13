@@ -2,12 +2,14 @@
 // (offline / no key) by falling back to deterministic heuristics. The LLM is untrusted:
 // callers validate its output with zod before using it.
 import Groq from "groq-sdk";
+import { userKey } from "./auth";
 import { prisma } from "@/lib/db";
 import { decrypt, encrypt, isEncrypted } from "@/lib/arkus/secrets";
 
 // The Groq key comes from Settings → AI (stored encrypted in Arkus's own DB, key "ai.groqKey")
 // or, as a fallback, GROQ_API_KEY in .env. Cached for 30s so route handlers don't hit the DB per call.
 const KEY_SETTING = "ai.groqKey";
+const settingKey = () => userKey(KEY_SETTING);
 let cache: { key: string | null; source: "settings" | "env" | null; at: number } | null = null;
 let client: Groq | null = null;
 let clientKey = "";
@@ -16,7 +18,7 @@ export async function loadAiKey(force = false): Promise<string | null> {
   if (!force && cache && Date.now() - cache.at < 30_000) return cache.key;
   let key: string | null = null; let source: "settings" | "env" | null = null;
   try {
-    const row = await prisma.setting.findUnique({ where: { key: KEY_SETTING } });
+    const row = await prisma.setting.findUnique({ where: { key: await settingKey() } });
     if (row?.value) { key = isEncrypted(row.value) ? decrypt(row.value) : row.value; source = "settings"; }
   } catch { /* settings table unavailable: fall through to env */ }
   if (!key && process.env.GROQ_API_KEY) { key = process.env.GROQ_API_KEY; source = "env"; }
@@ -40,11 +42,12 @@ export async function verifyAiKey(key: string): Promise<void> {
 export async function setAiKey(key: string): Promise<void> {
   await verifyAiKey(key);
   const k = key.trim();
-  await prisma.setting.upsert({ where: { key: KEY_SETTING }, update: { value: encrypt(k) }, create: { key: KEY_SETTING, value: encrypt(k) } });
+  const sk = await settingKey();
+  await prisma.setting.upsert({ where: { key: sk }, update: { value: encrypt(k) }, create: { key: sk, value: encrypt(k) } });
   cache = null; client = null;
 }
 export async function clearAiKey(): Promise<void> {
-  await prisma.setting.deleteMany({ where: { key: KEY_SETTING } });
+  await prisma.setting.deleteMany({ where: { key: await settingKey() } });
   cache = null; client = null;
 }
 function groq(key: string) {

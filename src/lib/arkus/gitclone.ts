@@ -5,6 +5,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { prisma } from "@/lib/db";
 import { decrypt, encrypt, isEncrypted } from "./secrets";
+import { userKey } from "../auth";
 
 const exec = promisify(execFile);
 const KEY = "github.token";
@@ -16,12 +17,13 @@ export class CloneError extends Error {
 }
 
 export async function getGithubToken(): Promise<string | null> {
-  const row = await prisma.setting.findUnique({ where: { key: KEY } });
+  const row = await prisma.setting.findUnique({ where: { key: await userKey(KEY) } });
   if (!row?.value) return null;
   return isEncrypted(row.value) ? decrypt(row.value) : row.value;
 }
 export async function githubTokenInfo(): Promise<{ configured: boolean; login?: string }> {
-  const [tok, login] = await Promise.all([prisma.setting.findUnique({ where: { key: KEY } }), prisma.setting.findUnique({ where: { key: LOGIN_KEY } })]);
+  const [k, lk] = await Promise.all([userKey(KEY), userKey(LOGIN_KEY)]);
+  const [tok, login] = await Promise.all([prisma.setting.findUnique({ where: { key: k } }), prisma.setting.findUnique({ where: { key: lk } })]);
   return { configured: Boolean(tok?.value), login: login?.value || undefined };
 }
 /** Check the shape and ask GitHub who the token belongs to. Nothing is stored. */
@@ -37,14 +39,15 @@ export async function verifyGithubToken(token: string): Promise<{ token: string;
 /** Verify the token against the GitHub API, then store it encrypted. Returns the login. */
 export async function setGithubToken(token: string): Promise<{ login: string }> {
   const { token: t, login } = await verifyGithubToken(token);
+  const [k, lk] = await Promise.all([userKey(KEY), userKey(LOGIN_KEY)]);
   await prisma.$transaction([
-    prisma.setting.upsert({ where: { key: KEY }, update: { value: encrypt(t) }, create: { key: KEY, value: encrypt(t) } }),
-    prisma.setting.upsert({ where: { key: LOGIN_KEY }, update: { value: login }, create: { key: LOGIN_KEY, value: login } }),
+    prisma.setting.upsert({ where: { key: k }, update: { value: encrypt(t) }, create: { key: k, value: encrypt(t) } }),
+    prisma.setting.upsert({ where: { key: lk }, update: { value: login }, create: { key: lk, value: login } }),
   ]);
   return { login };
 }
 export async function clearGithubToken() {
-  await prisma.setting.deleteMany({ where: { key: { in: [KEY, LOGIN_KEY] } } });
+  await prisma.setting.deleteMany({ where: { key: { in: await Promise.all([userKey(KEY), userKey(LOGIN_KEY)]) } } });
 }
 
 function authArgs(url: string, token: string | null): string[] {

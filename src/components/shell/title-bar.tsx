@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cx } from "@/lib/ui";
 import { Icon, Kbd } from "@/components/ui";
 import { useWorkspace } from "./workspace";
+import { UserMenu } from "./standalone";
 
 export function TitleBar() {
   const { project, setPaletteOpen, rightPane, setRightPane } = useWorkspace();
@@ -21,6 +22,7 @@ export function TitleBar() {
       <div className="flex items-center justify-end gap-1">
         {project.ai === false && <Link href={`/p/${project.slug}/settings`} className="text-[11px] text-dim hover:text-text px-2" title="Add a Groq key to turn on AI">AI off</Link>}
         <button className={cx("btn-xs", rightPane === "ask" ? "btn-primary" : "btn-ghost")} onClick={() => setRightPane(rightPane === "ask" ? null : "ask")} title="Ask about this app (Ctrl L)">{Icon.spark({ size: 12 })} Ask</button>
+        <UserMenu compact />
       </div>
     </div>
   );
