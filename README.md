@@ -17,18 +17,28 @@ Two ways in:
 ## Run it
 
 ```bash
-npm install
-npx prisma db push          # creates prisma/dev.db (Arkus's own metadata store)
-npm run dev                 # http://localhost:3600
+npx arkus
 ```
 
-Everything works without AI: import, map, pages, APIs, database browsing, SQL you write, plans.
+That is the whole install. Arkus needs Node 22.5 or newer. It starts on this machine only (127.0.0.1), opens
+your browser, and keeps its own data in `~/.arkus` (metadata database, encrypted connection strings, cloned
+repos). Your source folders are read in place and never copied. `npx arkus --help` lists the few flags.
+
+Everything works without AI: import, map, APIs, database browsing and editing, SQL you write, plans.
 AI (free Groq tier) adds Ask in plain English, English → SQL, flow names, writeups and AI blueprints.
-Turn it on from **Settings → AI** by pasting a Groq key (verified with Groq, stored encrypted, no
-restart). `GROQ_API_KEY` in `.env` still works as a fallback.
+Turn it on from **More → Settings → AI** by pasting a Groq key (verified with Groq, stored encrypted).
 
 Private GitHub repositories: on **Import → Git URL** switch on *Private repository* and paste a
-fine-grained token with Contents: read (also under **Connections → GitHub access**).
+fine-grained token with Contents: read (also under **More → Connections → GitHub access**).
+
+### Develop
+
+```bash
+npm install                 # also generates the Prisma client
+npx prisma db push          # creates prisma/dev.db for development
+npm run dev                 # http://localhost:3600
+npm run build && npm start  # production build, then the same launcher users get
+```
 
 ## What is supported today
 
