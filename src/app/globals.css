@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ tokens
+   Arkus — neutral graphite dark, IBM Plex, 6px radii. Accent is reserved for the primary
+   action, the active nav item and links; everything else is neutral so the
+   hierarchy reads at a glance. */
+:root {
+  --bg: #0A0A0B; --bg-deep: #050506; --surface: #0F1012; --surface-2: #141518; --surface-3: #1A1C20; --surface-4: #23262C;
+  --border: #1E2126; --border-strong: #2D3138;
+  --text: #ECEDEF; --text-2: #C9CCD2; --muted: #8A8F99; --dim: #5B606A;
+  --accent: #34D399; --accent-hover: #5EEAB4; --accent-soft: rgba(52,211,153,.14);
+  --green: #34D399; --teal: #2DD4BF; --amber: #F5B342; --gold: #F5C451; --red: #EF5350; --red-soft: #F58A87; --purple: #A78BFA; --blue: #60A5FA;
+  --topbar-h: 36px; --sidebar-w: 264px; --list-w: 288px; --inspector-w: 360px;
+  --shadow-pop: 0 16px 48px rgba(0,0,0,.6), 0 0 0 1px var(--border);
+}
+@theme inline {
+  --color-bg: var(--bg); --color-bg-deep: var(--bg-deep); --color-surface: var(--surface); --color-surface-2: var(--surface-2); --color-surface-3: var(--surface-3); --color-surface-4: var(--surface-4);
+  --color-border: var(--border); --color-border-strong: var(--border-strong);
+  --color-text: var(--text); --color-text-2: var(--text-2); --color-muted: var(--muted); --color-dim: var(--dim);
+  --color-accent: var(--accent); --color-accent-hover: var(--accent-hover);
+  --color-green: var(--green); --color-teal: var(--teal); --color-amber: var(--amber); --color-gold: var(--gold); --color-red: var(--red); --color-red-soft: var(--red-soft); --color-purple: var(--purple); --color-blue: var(--blue);
+  --font-sans: var(--font-plex-sans), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jb-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 9px; --radius-xl: 12px;
+}
+
+/* Base styles live in the base layer so utilities (text-*, etc.) always win. */
+@layer base {
+  html { color-scheme: dark; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  .prose, .prose * { font-family: var(--font-sans); }
+  * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+  ::selection { background: rgba(52,211,153,.3); }
+  a { color: inherit; text-decoration: none; }
+  code, kbd, pre, .mono { font-family: var(--font-mono); }
+  button { font: inherit; color: inherit; }
+  input, textarea, select { font: inherit; }
+  input[type="checkbox"] { accent-color: var(--accent); }
+}
+
+@keyframes arise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes apulse { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+.arise { animation: arise .18s ease-out both; }
+.apulse { animation: apulse 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+@utility btn { @apply inline-flex items-center justify-center gap-1.5 rounded-[6px] px-3 h-8 text-[13px] font-medium whitespace-nowrap transition cursor-pointer select-none disabled:opacity-45 disabled:cursor-not-allowed border border-transparent; }
+@utility input { @apply w-full rounded-[6px] border border-border bg-bg-deep px-3 h-9 text-[13.5px] text-text outline-none placeholder:text-dim focus:border-accent/70 focus:ring-2 focus:ring-accent/15 transition; }
+/* ------------------------------------------------------------------ primitives */
+@layer components {
+  .btn-primary { @apply btn bg-accent text-bg-deep hover:bg-accent-hover; }
+  .btn-ghost { @apply btn bg-surface-2 text-text-2 border-border hover:border-border-strong hover:text-text hover:bg-surface-3; }
+  .btn-subtle { @apply btn bg-transparent text-muted hover:text-text hover:bg-surface-3; }
+  .btn-danger { @apply btn bg-transparent text-red-soft border-[rgba(209,77,77,.35)] hover:bg-[rgba(209,77,77,.12)]; }
+  .btn-sm { @apply h-7 px-2.5 text-[12.5px]; }
+  .btn-xs { @apply h-6 px-2 text-[12px] gap-1; }
+  .btn-icon { @apply btn w-8 px-0 text-muted bg-transparent hover:text-text hover:bg-surface-3; }
+  .link { @apply text-accent hover:text-accent-hover cursor-pointer; }
+  .input-sm { @apply h-8 text-[13px] px-2.5; }
+  .textarea { @apply input h-auto py-2 resize-y leading-relaxed; }
+  .select { @apply input appearance-none pr-8 bg-no-repeat; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238B91A0' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-position: right 10px center; }
+  .label { @apply block text-[12px] font-medium text-muted mb-1; }
+  .card { @apply bg-surface border border-border rounded-[9px]; }
+  .panel { @apply bg-surface border border-border rounded-[9px] overflow-hidden; }
+  .panel-head { @apply flex items-center gap-2 px-4 h-10 border-b border-border text-[13px] font-semibold; }
+  .chip { @apply inline-flex items-center gap-1 rounded-[5px] px-1.5 h-[20px] text-[11.5px] font-medium border leading-none whitespace-nowrap; }
+  .eyebrow { @apply text-[11px] font-semibold uppercase tracking-[.08em] text-dim; }
+  .kbd { @apply inline-flex items-center rounded-[4px] border border-border bg-surface-2 px-1.5 h-[18px] text-[11px] text-muted font-mono leading-none; }
+  .row { @apply flex items-center gap-2; }
+  .list-row { @apply flex items-center gap-2 px-3 h-9 text-[13px] text-text-2 cursor-pointer border-l-2 border-transparent hover:bg-surface-2 hover:text-text transition; }
+  .list-row.active { @apply bg-surface-3 text-text border-accent; }
+  .nav-item { @apply flex items-center gap-2.5 px-2.5 h-8 rounded-[6px] text-[13px] text-muted cursor-pointer hover:bg-surface-3 hover:text-text transition; }
+  .nav-item.active { @apply bg-surface-3 text-text; }
+  .nav-item svg { @apply flex-none; }
+  .tree-row { @apply flex items-center gap-1.5 pr-2 h-[22px] text-[12.5px] text-text-2 cursor-pointer hover:bg-surface-2 hover:text-text whitespace-nowrap; }
+  .tree-row.active { @apply bg-surface-3 text-text; }
+  .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
+  .glow { box-shadow: 0 0 0 1px var(--glow, var(--accent)), 0 0 22px color-mix(in srgb, var(--glow, var(--accent)) 35%, transparent); }
+  .glow-soft { box-shadow: 0 0 0 1px color-mix(in srgb, var(--glow, var(--accent)) 60%, transparent), 0 0 14px color-mix(in srgb, var(--glow, var(--accent)) 22%, transparent); }
+  .dots { background-image: radial-gradient(var(--border-strong) 1px, transparent 1px); background-size: 22px 22px; }
+  .stat-box { @apply rounded-[5px] border border-border bg-bg-deep/60 px-2 py-1 flex flex-col gap-0 min-w-0; }
+  .stat-box .k { @apply text-[9.5px] uppercase tracking-[.08em] text-dim leading-tight; }
+  .stat-box .v { @apply text-[12px] font-semibold text-text leading-tight tabular-nums truncate; }
+  .type-pill { @apply inline-flex items-center gap-1 rounded-[4px] px-1.5 h-[16px] text-[9.5px] font-semibold uppercase tracking-[.08em] border leading-none; }
+  .tbl { @apply w-full text-[13px] border-collapse; }
+  .tbl th { @apply text-left text-[11px] font-semibold uppercase tracking-[.06em] text-dim px-3 h-9 border-b border-border whitespace-nowrap bg-surface; }
+  .tbl td { @apply px-3 py-2 border-b border-border/70 align-middle; }
+  .tbl tr:last-child td { @apply border-0; }
+  .tbl.hover tbody tr:hover td { @apply bg-surface-2; }
+  .kv { @apply grid grid-cols-[120px_1fr] gap-x-4 gap-y-1.5 text-[13px]; }
+  .kv > :nth-child(odd) { @apply text-dim; }
+  .prod-stripes { background: repeating-linear-gradient(135deg, #2A1616 0 10px, #3A1C1C 10px 20px); }
+  .spinner { @apply inline-block w-3.5 h-3.5 rounded-full border-2 border-border-strong border-t-accent; animation: spin .8s linear infinite; }
+  .md h1 { @apply text-xl font-bold mt-2 mb-2; } .md h2 { @apply text-[15px] font-semibold mt-4 mb-1.5 text-text; } .md h3 { @apply text-[13.5px] font-semibold mt-3 mb-1 text-text; } .md p { @apply my-1.5 text-text-2; }
+  .md pre { @apply bg-bg-deep border border-border rounded-[6px] p-3 my-2 text-[12.5px] overflow-auto; } .md code { @apply text-[12.5px] text-gold; } .md pre code { @apply text-text-2; }
+  .md ol, .md ul { @apply pl-5 my-1.5 list-decimal text-text-2; } .md ul { @apply list-disc; } .md li { @apply my-0.5; }
+}
+
+/* React Flow surface overrides */
+.react-flow__controls { box-shadow: none !important; }
+.react-flow__controls button { background: var(--surface) !important; border-bottom: 1px solid var(--border) !important; color: var(--muted) !important; fill: var(--muted) !important; }
+.react-flow__controls button:hover { background: var(--surface-3) !important; color: var(--text) !important; }
+.react-flow__minimap { background: var(--surface) !important; border: 1px solid var(--border); border-radius: 6px; }
+.react-flow__node { transition: transform .22s cubic-bezier(.2,.8,.2,1); }
+.react-flow__node.dragging { transition: none; }
+.react-flow__edge-path { transition: stroke .15s, opacity .15s; }
+.arkus-map .react-flow__edge.lit path { filter: drop-shadow(0 0 4px currentColor); }
+.arkus-map .react-flow__edge.animated path { animation: dashdraw .6s linear infinite; }
+@keyframes dashdraw { to { stroke-dashoffset: -9; } }
+.react-flow__attribution { background: transparent !important; color: var(--dim) !important; font-size: 10px; }
+.react-flow__attribution a { color: var(--dim) !important; }

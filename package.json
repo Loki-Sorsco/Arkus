@@ -1,0 +1,93 @@
+{
+  "name": "arkus",
+  "version": "0.1.0",
+  "description": "See your whole app and change it safely. A local-first dev tool that maps pages, APIs and tables, lets you edit code and data, and test endpoints. Nothing leaves your machine.",
+  "license": "MIT",
+  "bin": {
+    "arkus": "bin/arkus.mjs"
+  },
+  "files": [
+    "bin",
+    ".next/",
+    "!.next/cache",
+    "!.next/dev",
+    "!.next/standalone",
+    "!.next/trace",
+    "public",
+    "prisma/schema.sql",
+    "prisma/schema.prisma",
+    "scripts/schema-sql.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.5"
+  },
+  "keywords": [
+    "developer-tools",
+    "architecture",
+    "codebase-map",
+    "database-gui",
+    "api-client",
+    "local-first",
+    "prisma",
+    "nextjs"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Lokeshsri11/arkus.git"
+  },
+  "homepage": "https://github.com/Lokeshsri11/arkus#readme",
+  "scripts": {
+    "dev": "next dev -p 3600",
+    "build": "prisma generate && node scripts/schema-sql.mjs && next build",
+    "start": "node bin/arkus.mjs",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "smoke": "node scripts/smoke.mjs",
+    "prepublishOnly": "npm run typecheck && npm run build",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@codemirror/lang-css": "^6.3.1",
+    "@codemirror/lang-html": "^6.4.12",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/theme-one-dark": "^6.1.3",
+    "@codemirror/view": "^6.43.14",
+    "@prisma/client": "^6.16.0",
+    "@uiw/react-codemirror": "^4.25.12",
+    "@xyflow/react": "^12.8.4",
+    "elkjs": "^0.10.0",
+    "fast-glob": "^3.3.3",
+    "groq-sdk": "^0.30.0",
+    "ignore": "^7.0.5",
+    "lucide-react": "^0.542.0",
+    "mysql2": "^3.14.3",
+    "next": "16.3.4",
+    "node-sql-parser": "^5.3.11",
+    "pg": "^8.16.3",
+    "prisma": "^6.16.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "typescript": "^5",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pg": "^8.15.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.4",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15"
+  }
+}

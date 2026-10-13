@@ -1,0 +1,210 @@
+// Arkus local metadata store. SQLite by default (zero setup, local-first).
+// Switch provider to "postgresql" for a hosted control plane later.
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// One software system. mode: "connected" (imported existing code) | "designed" (new project from an idea)
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  mode      String   @default("connected")
+  rootPath  String?            // local folder of the repo (connected projects)
+  repoUrl   String?            // optional git remote
+  stack     String   @default("{}") // detected stack summary (json)
+  status    String   @default("new") // new | indexing | ready | error
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sources    Source[]
+  snapshots  Snapshot[]
+  bindings   Binding[]
+  plans      Plan[]
+  activities Activity[]
+  queries    Query[]
+  writeups   Writeup[]
+  blueprints Blueprint[]
+  overrides  Override[]
+}
+
+// A connected thing: repo folder, database connection, (later) health source. Per environment.
+model Source {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  kind      String   // repo | db
+  env       String   @default("dev") // dev | preview | prod
+  name      String
+  config    String   @default("{}") // json: { path } | { engine, url, schemaOnly }
+  status    String   @default("untested") // untested | ok | error
+  lastError String?
+  testedAt  DateTime?
+  createdAt DateTime @default(now())
+  snapshots Snapshot[]
+}
+
+// Immutable graph derived from a specific commit / schema version.
+model Snapshot {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceId  String?
+  source    Source?  @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  kind      String   // code | schema | design
+  version   String   // commit sha, schema hash or design version
+  status    String   @default("building") // building | ready | failed
+  stats     String   @default("{}")
+  log       String   @default("[]") // json array of {t, stage, msg, level}
+  createdAt DateTime @default(now())
+  nodes     Node[]
+  edges     Edge[]
+  @@index([projectId, kind, createdAt])
+}
+
+model Node {
+  id         String   @id @default(cuid())
+  snapshotId String
+  snapshot   Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  type       String   // app | screen | apicall | endpoint | service | table | column | external | queue | job
+  key        String   // stable key, e.g. "endpoint:GET /orders/:id", "table:users"
+  name       String
+  attrs      String   @default("{}")
+  file       String?
+  lineStart  Int?
+  lineEnd    Int?
+  confidence Float    @default(1)
+  evidence   String   @default("[]")
+  @@unique([snapshotId, key])
+  @@index([snapshotId, type])
+}
+
+model Edge {
+  id         String   @id @default(cuid())
+  snapshotId String
+  snapshot   Snapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  fromKey    String
+  toKey      String
+  type       String   // contains | calls | reads | writes | references | publishes | consumes
+  confidence Float    @default(1)
+  evidence   String   @default("[]")
+  @@index([snapshotId, fromKey])
+  @@index([snapshotId, toKey])
+}
+
+// The core row of the Arkus UI: page field -> API key -> DB column.
+model Binding {
+  id         String  @id @default(cuid())
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  pageKey    String
+  fieldLabel String
+  uiType     String  @default("text")
+  apiKey     String?  // endpoint key
+  keyName    String?  // request body key
+  keyType    String?
+  tableName  String?
+  columnName String?
+  colType    String?
+  kind       String  @default("input") // input | server | computed | frontend_only
+  source     String  @default("static") // static | runtime | designed | manual
+  confidence Float   @default(0.6)
+  @@index([projectId, pageKey])
+}
+
+// Manual corrections that survive re-indexing.
+model Override {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  targetKey String
+  patch     String   @default("{}")
+  createdAt DateTime @default(now())
+}
+
+// A proposed change across layers. The only way anything changes.
+model Plan {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  no           Int
+  title        String
+  pipeline     String   @default("draft") // draft | previewing | checks_passing | approved | shipped | failed
+  changes      String   @default("[]") // json rows: {layer: PAGE|API|DB, op, target, detail}
+  decisions    String   @default("{}")
+  migrationFwd String?
+  migrationRev String?
+  impact       String   @default("{}")
+  checks       String   @default("[]")
+  guide        String?  // hand-off guide markdown (Free path)
+  risk         String   @default("low")
+  branch       String?
+  env          String   @default("dev")
+  comments     String   @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@unique([projectId, no])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  env       String   @default("dev")
+  kind      String   // index | plan | query | data_edit | connect | design
+  what      String
+  meta      String   @default("{}")
+  createdAt DateTime @default(now())
+  @@index([projectId, createdAt])
+}
+
+model Query {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  env       String   @default("dev")
+  question  String?
+  sql       String
+  kind      String   @default("read")
+  status    String   @default("ok") // ok | blocked | error
+  rows      Int      @default(0)
+  ms        Int      @default(0)
+  saved     Boolean  @default(false)
+  name      String?
+  createdAt DateTime @default(now())
+  @@index([projectId, createdAt])
+}
+
+// LLM-generated endpoint / table writeups cached by content hash.
+model Writeup {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  nodeKey   String
+  hash      String
+  content   String   @default("{}")
+  createdAt DateTime @default(now())
+  @@unique([projectId, nodeKey])
+}
+
+// New-project architect output. Versioned.
+model Blueprint {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version     Int      @default(1)
+  prompt      String
+  content     String   @default("{}") // {entities, tables, endpoints, pages, services, stack, assumptions}
+  createdAt   DateTime @default(now())
+  @@unique([projectId, version])
+}
+
+model Setting {
+  key   String @id
+  value String
+}

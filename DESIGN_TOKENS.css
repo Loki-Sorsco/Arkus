@@ -1,0 +1,36 @@
+/* Arkus design tokens — extracted from the Claude Design "Arkus Shell" (design/arkus-shell.dc.html).
+   Warm dark palette, IBM Plex Sans/Mono, 6px radii, 1px borders. */
+:root {
+  --bg: #181210;          /* page background */
+  --bg-deep: #150F0C;     /* deepest (on-accent text, palette overlay) */
+  --surface: #1D1613;     /* top bar, rails, cards */
+  --surface-2: #221A16;   /* inputs, raised cards */
+  --surface-3: #2F231C;   /* hover / selected rows */
+  --surface-4: #2C221B;
+  --border: #3E2F25;
+  --border-strong: #584435;
+  --text: #F2EAE2;
+  --text-2: #D9CBBE;
+  --text-muted: #A98D77;
+  --text-dim: #7E6350;
+  --text-faint: #B39B87;
+  --accent: #E07A4F;      /* brand / primary actions */
+  --accent-hover: #F0A987;
+  --green: #3FB27F;       /* ok / GET / added */
+  --teal: #4EB3A5;        /* tables / db */
+  --amber: #D9A03F;       /* drafts / warnings / modified */
+  --gold: #E6C07B;
+  --red: #D14D4D;         /* errors / removed */
+  --red-soft: #E89A9A;
+  --purple: #B48CF2;      /* AI ✦ */
+  --purple-soft: #D4BCF7;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --radius: 6px;
+  --radius-lg: 9px;
+  --radius-xl: 12px;
+  --topbar-h: 56px;
+  --rail-w: 56px;
+  --leftrail-w: 260px;
+  --inspector-w: 320px;
+}
