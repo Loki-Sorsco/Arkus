@@ -101,8 +101,9 @@
 .react-flow__controls { box-shadow: none !important; }
 .react-flow__controls button { background: var(--surface) !important; border-bottom: 1px solid var(--border) !important; color: var(--muted) !important; fill: var(--muted) !important; }
 .react-flow__controls button:hover { background: var(--surface-3) !important; color: var(--text) !important; }
-.react-flow__minimap { background: var(--surface) !important; border: 1px solid var(--border); border-radius: 6px; }
-.react-flow__node { transition: transform .22s cubic-bezier(.2,.8,.2,1); }
+.react-flow__minimap { background: var(--surface) !important; border: 1px solid var(--border); border-radius: 6px; opacity: .85; transition: opacity .15s; }
+.react-flow__minimap:hover { opacity: 1; }
+.react-flow__node { transition: transform .32s cubic-bezier(.2,.8,.2,1), opacity .2s; }
 .react-flow__node.dragging { transition: none; }
 .react-flow__edge-path { transition: stroke .15s, opacity .15s; }
 .arkus-map .react-flow__edge.lit path { filter: drop-shadow(0 0 4px currentColor); }

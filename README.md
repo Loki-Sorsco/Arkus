@@ -59,6 +59,13 @@ create a Web client in Google Cloud Console with the authorised redirect URI
 Metadata lives in Postgres (`User`, `Session`, `Project.ownerId`, …); repos in the `/data/repos` volume.
 Arkus never stores rows from users' databases.
 
+**Free database**: instead of the bundled Postgres, create a free project on [Neon](https://neon.tech)
+(or Supabase), copy its connection string into `DATABASE_URL` (keep `?sslmode=require`) and delete the
+`db` service from the compose file. The entrypoint creates the tables on first start.
+
+**Trying it before Google is set up**: `ARKUS_DEV_LOGIN=true` adds an email-only sign-in to the login
+page. Never enable it on a public server.
+
 ## What is supported today
 
 | Area | Coverage |

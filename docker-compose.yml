@@ -9,7 +9,9 @@ services:
       ARKUS_MODE: cloud
       ARKUS_URL: ${ARKUS_URL}                      # public https URL, e.g. https://app.arkus.dev
       ARKUS_SECRET_KEY: ${ARKUS_SECRET_KEY}        # openssl rand -base64 32
-      DATABASE_URL: postgresql://arkus:${POSTGRES_PASSWORD}@db:5432/arkus
+      # Bundled Postgres by default; set DATABASE_URL in the environment to use Neon/Supabase instead.
+      DATABASE_URL: ${DATABASE_URL:-postgresql://arkus:${POSTGRES_PASSWORD}@db:5432/arkus}
+      ARKUS_DEV_LOGIN: ${ARKUS_DEV_LOGIN:-false}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GROQ_API_KEY: ${GROQ_API_KEY:-}              # optional server-wide fallback; users can add their own

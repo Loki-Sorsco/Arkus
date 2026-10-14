@@ -3,9 +3,9 @@
 // groups so a 50-endpoint app reads as ~8 cards; click a card to light up its full path (everything
 // else fades), double-click to open it. Rich cards show type · name · two stats · file; compact mode
 // shrinks them to one line. Blast radius mode paints everything that depends on the selected node red.
-import { Background, BackgroundVariant, Controls, Handle, Position, ReactFlow, type Edge, type Node, type NodeProps } from "@xyflow/react";
+import { Background, BackgroundVariant, Controls, Handle, MiniMap, Position, ReactFlow, ReactFlowProvider, useReactFlow, type Edge, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LoadedGraph } from "@/lib/arkus/graph";
 import type { GNode } from "@/lib/arkus/types";
 import { cx, fmtNum, methodColor } from "@/lib/ui";
@@ -228,17 +228,45 @@ export function ArchitectureMap({ graph, selection, onSelect, onOpen, layer = "a
       const srcType = (byKey.get(a.source)?.type || a.source.split(":")[1] || "endpoint") as Lane;
       const label = a.types.has("writes") ? "writes" : a.types.has("reads") ? "reads" : undefined;
       const color = blastSet ? "var(--red)" : LANE_COLOR[srcType];
-      return { id, source: a.source, target: a.target, type: "smoothstep", animated: a.lit, className: a.lit ? "lit" : undefined, style: { stroke: a.lit ? color : "var(--border-strong)", strokeWidth: a.lit ? 1.6 : 1, opacity: focus ? (a.lit ? 1 : 0.05) : q ? 0.12 : 0.4, strokeDasharray: a.lit ? "5 4" : a.conf < 0.9 ? "4 3" : undefined }, label: a.lit && label ? (a.count > 1 ? `${label} ·${a.count}` : label) : undefined, labelStyle: { fill: a.lit ? "var(--text-2)" : "var(--dim)", fontSize: 10, fontFamily: "var(--font-mono)" }, labelBgStyle: { fill: "var(--bg)", fillOpacity: 0.9 }, labelBgPadding: [3, 2] as [number, number] };
+      return { id, source: a.source, target: a.target, type: "smoothstep", pathOptions: { borderRadius: 14 }, animated: a.lit, className: a.lit ? "lit" : undefined, style: { stroke: a.lit ? color : "var(--border-strong)", strokeWidth: a.lit ? 1.6 : 1, opacity: focus ? (a.lit ? 1 : 0.05) : q ? 0.12 : 0.4, strokeDasharray: a.lit ? "5 4" : a.conf < 0.9 ? "4 3" : undefined }, label: a.lit && label ? (a.count > 1 ? `${label} ·${a.count}` : label) : undefined, labelStyle: { fill: a.lit ? "var(--text-2)" : "var(--dim)", fontSize: 10, fontFamily: "var(--font-mono)" }, labelBgStyle: { fill: "var(--bg)", fillOpacity: 0.9 }, labelBgPadding: [3, 2] as [number, number] };
     });
     return { nodes: out, edges };
   }, [graph, selection, hover, onSelect, layer, filter, open, toggle, density, blast]);
 
   return (
     <div className="h-full w-full arkus-map">
-      <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08, maxZoom: 1 }} minZoom={0.12} maxZoom={1.6} onPaneClick={() => onSelect(null)} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} colorMode="dark" style={{ background: "var(--bg)" }} onNodeMouseEnter={(_, n) => { if (n.type === "item" && !blast) setHover(n.id); }} onNodeMouseLeave={() => setHover(null)} onNodeDoubleClick={(_, n) => { if (n.type === "item") onOpen?.(n.id); }}>
-        <Background variant={BackgroundVariant.Dots} color="#2A2D33" gap={22} size={1.2} />
-        <Controls showInteractive={false} position="bottom-right" />
-      </ReactFlow>
+      <ReactFlowProvider>
+        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08, maxZoom: 1 }} minZoom={0.12} maxZoom={1.6} onPaneClick={() => onSelect(null)} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} onlyRenderVisibleElements colorMode="dark" style={{ background: "var(--bg)" }} onNodeMouseEnter={(_, n) => { if (n.type === "item" && !blast) setHover(n.id); }} onNodeMouseLeave={() => setHover(null)} onNodeDoubleClick={(_, n) => { if (n.type === "item") onOpen?.(n.id); }}>
+          <Background variant={BackgroundVariant.Dots} color="#2A2D33" gap={22} size={1.2} />
+          <Controls showInteractive={false} position="bottom-right" />
+          <MiniMap position="top-right" pannable zoomable nodeStrokeWidth={0} nodeBorderRadius={3} nodeColor={(n) => (n.type === "item" ? ({ screen: "#F5C451", endpoint: "#60A5FA", table: "#2DD4BF", external: "#A78BFA" } as Record<string, string>)[(n.data as NodeData).n.type] || "#8A8F99" : n.type === "folder" ? "#3A3F48" : "transparent")} maskColor="rgba(10,10,11,.45)" bgColor="#111214" style={{ width: 170, height: 115 }} />
+          <Camera selection={selection} filter={filter} blast={blast} onClear={() => onSelect(null)} />
+        </ReactFlow>
+      </ReactFlowProvider>
     </div>
   );
+}
+
+/** Camera behaviour: glide to the lit path when the selection changes, to matches while filtering,
+ * back to the whole map when cleared. Esc clears the selection. */
+function Camera({ selection, filter, blast, onClear }: { selection: string | null; filter: string; blast: boolean; onClear: () => void }) {
+  const rf = useReactFlow();
+  const first = useRef(true);
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClear(); };
+    window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h);
+  }, [onClear]);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    const t = setTimeout(() => {
+      const all = rf.getNodes().filter((n) => n.type === "item");
+      const lit = all.filter((n) => { const st = (n.data as NodeData).state; return st === "selected" || st === "lit" || st === "blast" || st === "blast-root"; });
+      const matched = filter.trim() ? all.filter((n) => (n.data as NodeData).state === "normal") : [];
+      const target = selection ? lit : matched.length && matched.length < all.length ? matched : [];
+      if (target.length) rf.fitView({ nodes: target.map((n) => ({ id: n.id })), padding: target.length > 6 ? 0.15 : 0.35, duration: 450, maxZoom: 1.1 });
+      else rf.fitView({ padding: 0.08, duration: 450, maxZoom: 1 });
+    }, 60); // let the new layout commit first
+    return () => clearTimeout(t);
+  }, [selection, filter, blast, rf]);
+  return null;
 }
