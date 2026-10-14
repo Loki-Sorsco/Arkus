@@ -21,7 +21,7 @@ export type Section = "map" | "apis" | "database" | "flows" | "plans" | "activit
 export const SECTIONS: Section[] = ["map", "apis", "database", "flows", "plans", "activity", "connect", "settings"];
 export type ProjectDetail = { id: string; name: string; slug: string; mode: string; status: string; rootPath: string | null; repoUrl: string | null; stack: { summary?: string; frameworks?: string[]; orms?: string[]; dbEngineHint?: string }; sources: { id: string; kind: string; env: string; name: string; status: string; config: Record<string, unknown>; lastError?: string | null; testedAt?: string | null }[]; snapshots: { id: string; kind: string; version: string; status: string; stats: Record<string, unknown>; createdAt: string }[]; plans: { no: number; title: string; pipeline: string; risk: string }[]; draftPlans: number; blueprint: { version: number } | null; ai?: boolean };
 export type Draft = { id: string; label: string; intent: PlanIntent };
-export type RightPane = "inspect" | "ask" | null;
+export type RightPane = "inspect" | "ask" | "closed" | null;
 export type EditorStatus = { line: number; col: number; language: string; file: string } | null;
 export type OpenOpts = { side?: boolean; preview?: boolean; focus?: boolean };
 export type TryRequest = { key: string; method: string; path: string; bodyKeys: { name: string; type?: string }[] };
@@ -94,7 +94,7 @@ export function WorkspaceProvider({ slug, initial, children }: { slug: string; i
   const select = useCallback((key: string | null, opts?: { inspect?: boolean }) => {
     setSelection(key);
     if (section === "map") setParams({ sel: key || undefined });
-    if (key && section === "map" && (opts?.inspect ?? true)) setRightPane((cur) => (cur === "ask" ? cur : "inspect"));
+    if (key && section === "map" && (opts?.inspect ?? true)) setRightPane((cur) => (cur === "ask" || cur === "closed" ? cur : "inspect"));
   }, [section, setParams, setRightPane]);
 
   const openFile = useCallback((p: string, line?: number) => setCodeFile({ path: p, line }), []);
@@ -163,7 +163,7 @@ export function WorkspaceProvider({ slug, initial, children }: { slug: string; i
   }, [drafts, slug, env, clearDrafts, reloadProject, toast, go]);
   const gate = useCallback((fn: () => void | Promise<void>) => { if (env === "prod") setGateFn(() => fn); else fn(); }, [env]);
   const openAsk = useCallback((question?: string) => { setAskDraft(question ?? null); setRightPane("ask"); }, [setRightPane]);
-  const setInspectorOpen = useCallback((b: boolean) => setRightPane(b ? "inspect" : null), [setRightPane]);
+  const setInspectorOpen = useCallback((b: boolean) => setRightPane(b ? "inspect" : "closed"), [setRightPane]);
 
   // Keyboard: ⌘K / ⌘P palette · ⌘L ask · ⌘1/2/3 sections · Esc closes the code drawer
   useEffect(() => {
@@ -171,7 +171,7 @@ export function WorkspaceProvider({ slug, initial, children }: { slug: string; i
       const mod = e.metaKey || e.ctrlKey; if (!mod) return;
       const k = e.key.toLowerCase();
       if (k === "k" || k === "p") { e.preventDefault(); setPaletteOpen((o) => !o); }
-      else if (k === "l") { e.preventDefault(); setRightPane((p) => (p === "ask" ? null : "ask")); }
+      else if (k === "l") { e.preventDefault(); setRightPane((p) => (p === "ask" ? "closed" : "ask")); }
       else if (k === "1") { e.preventDefault(); go("map"); } else if (k === "2") { e.preventDefault(); go("apis"); } else if (k === "3") { e.preventDefault(); go("database"); }
     };
     window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h);
@@ -180,7 +180,7 @@ export function WorkspaceProvider({ slug, initial, children }: { slug: string; i
   const value = useMemo<Ctx>(() => ({
     project, reloadProject, graph: g.data, graphLoading: g.loading, reloadGraph: () => g.reload(true), env, setEnv, selection, select, drafts, addDraft, removeDraft, clearDrafts, saveDraftsToPlan, gate, paletteOpen, setPaletteOpen,
     section, params, go, setParams, openNode, openFile, codeFile, closeCodeFile: () => setCodeFile(null),
-    rightPane, setRightPane, inspectorOpen: rightPane === "inspect", setInspectorOpen, openAsk, askDraft, editorStatus, setEditorStatus,
+    rightPane, setRightPane, inspectorOpen: rightPane === "inspect" || (section === "map" && rightPane === null), setInspectorOpen, openAsk, askDraft, editorStatus, setEditorStatus,
     activeTab, tabs, openTab, updateTab, openTryIt,
   }), [project, reloadProject, g, env, setEnv, selection, select, drafts, addDraft, removeDraft, clearDrafts, saveDraftsToPlan, gate, paletteOpen, section, params, go, setParams, openNode, openFile, codeFile, rightPane, setRightPane, setInspectorOpen, openAsk, askDraft, editorStatus, activeTab, tabs, openTab, updateTab, openTryIt]);
 
@@ -192,7 +192,7 @@ export function WorkspaceProvider({ slug, initial, children }: { slug: string; i
         <div className="flex-1 min-h-0 flex relative">
           <Rail />
           <div className="flex-1 min-w-0 min-h-0 flex flex-col relative">{children}</div>
-          {rightPane && (rightPane === "ask" || section === "map") && <RightPanel />}
+          {(rightPane === "ask" || (section === "map" && rightPane !== "closed")) && <RightPanel />}
         </div>
         <EditBar />
         <StatusBar />

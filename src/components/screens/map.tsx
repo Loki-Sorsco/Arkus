@@ -236,7 +236,7 @@ export function ArchitectureMap({ graph, selection, onSelect, onOpen, layer = "a
   return (
     <div className="h-full w-full arkus-map">
       <ReactFlowProvider>
-        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08, maxZoom: 1 }} minZoom={0.12} maxZoom={1.6} onPaneClick={() => onSelect(null)} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} onlyRenderVisibleElements colorMode="dark" style={{ background: "var(--bg)" }} onNodeMouseEnter={(_, n) => { if (n.type === "item" && !blast) setHover(n.id); }} onNodeMouseLeave={() => setHover(null)} onNodeDoubleClick={(_, n) => { if (n.type === "item") onOpen?.(n.id); }}>
+        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08, maxZoom: 1 }} minZoom={0.12} maxZoom={1.6} onPaneClick={() => onSelect(null)} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} colorMode="dark" style={{ background: "var(--bg)" }} onNodeMouseEnter={(_, n) => { if (n.type === "item" && !blast) setHover(n.id); }} onNodeMouseLeave={() => setHover(null)} onNodeDoubleClick={(_, n) => { if (n.type === "item") onOpen?.(n.id); }}>
           <Background variant={BackgroundVariant.Dots} color="#2A2D33" gap={22} size={1.2} />
           <Controls showInteractive={false} position="bottom-right" />
           <MiniMap position="top-right" pannable zoomable nodeStrokeWidth={0} nodeBorderRadius={3} nodeColor={(n) => (n.type === "item" ? ({ screen: "#F5C451", endpoint: "#60A5FA", table: "#2DD4BF", external: "#A78BFA" } as Record<string, string>)[(n.data as NodeData).n.type] || "#8A8F99" : n.type === "folder" ? "#3A3F48" : "transparent")} maskColor="rgba(10,10,11,.45)" bgColor="#111214" style={{ width: 170, height: 115 }} />
@@ -265,7 +265,7 @@ function Camera({ selection, filter, blast, onClear }: { selection: string | nul
       const target = selection ? lit : matched.length && matched.length < all.length ? matched : [];
       if (target.length) rf.fitView({ nodes: target.map((n) => ({ id: n.id })), padding: target.length > 6 ? 0.15 : 0.35, duration: 450, maxZoom: 1.1 });
       else rf.fitView({ padding: 0.08, duration: 450, maxZoom: 1 });
-    }, 60); // let the new layout commit first
+    }, 120); // let the new layout commit first
     return () => clearTimeout(t);
   }, [selection, filter, blast, rf]);
   return null;

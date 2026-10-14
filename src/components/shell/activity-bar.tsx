@@ -41,7 +41,7 @@ export function Rail() {
         </Link>
       ))}
       <div className="flex-1" />
-      <button onClick={() => setRightPane(rightPane === "ask" ? null : "ask")} title="Ask AI (Ctrl L)" className={cx("w-full h-[54px] flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors", rightPane === "ask" ? "text-accent" : "text-dim hover:text-text")}>
+      <button onClick={() => setRightPane(rightPane === "ask" ? "closed" : "ask")} title="Ask AI (Ctrl L)" className={cx("w-full h-[54px] flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors", rightPane === "ask" ? "text-accent" : "text-dim hover:text-text")}>
         {Icon.chat({ size: 20 })}<span className="text-[10px] tracking-wide">Ask</span>
       </button>
       <div ref={ref} className="relative w-full">

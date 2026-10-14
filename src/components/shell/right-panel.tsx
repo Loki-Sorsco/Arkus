@@ -8,7 +8,8 @@ import { ResizeHandle, useResizable } from "./resize";
 import { useWorkspace } from "./workspace";
 
 export function RightPanel() {
-  const { rightPane, setRightPane, selection, section } = useWorkspace();
+  const { rightPane: raw, setRightPane, selection, section } = useWorkspace();
+  const rightPane = raw === null || raw === "closed" ? "inspect" : raw;
   const { size, handle } = useResizable("right", 380, { min: 300, max: 720, axis: "x", invert: true });
   const showInspect = section === "map";
   return (
@@ -20,7 +21,7 @@ export function RightPanel() {
         ))}
         {!showInspect && <span className="h-7 px-2.5 text-[12px] font-medium flex items-center gap-1.5 text-text">{Icon.chat({ size: 13 })} Ask</span>}
         <span className="flex-1" />
-        <button className="btn-icon btn-xs text-dim" onClick={() => setRightPane(null)} title="Close panel" aria-label="Close panel">{Icon.close({ size: 13 })}</button>
+        <button className="btn-icon btn-xs text-dim" onClick={() => setRightPane("closed")} title="Close panel" aria-label="Close panel">{Icon.close({ size: 13 })}</button>
       </div>
       <div className="flex-1 min-h-0 flex flex-col">
         {rightPane === "inspect" && showInspect && (selection ? <Inspector /> : <div className="flex-1 flex items-center justify-center p-6 text-center text-[12.5px] text-dim leading-relaxed prose">Click a card on the map to see what it is, what it touches, and open its code.</div>)}
