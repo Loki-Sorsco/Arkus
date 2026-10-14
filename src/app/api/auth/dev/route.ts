@@ -5,7 +5,7 @@ import { prisma } from "@/lib/db";
 import { COOKIE, cookieOptions, createSession, isCloud } from "@/lib/auth";
 import { bad, readJson } from "../../_util";
 
-export const devLoginEnabled = () => isCloud() && process.env.ARKUS_DEV_LOGIN === "true";
+const devLoginEnabled = () => isCloud() && process.env.ARKUS_DEV_LOGIN === "true";
 
 export async function POST(req: Request) {
   if (!devLoginEnabled()) return bad("Not available", 404);
