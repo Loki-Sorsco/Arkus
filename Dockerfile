@@ -5,7 +5,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 COPY . .
-RUN node scripts/schema-postgres.mjs \
+RUN mkdir -p public \
+ && node scripts/schema-postgres.mjs \
  && npx prisma generate --schema prisma/schema.postgres.prisma \
  && NEXT_TELEMETRY_DISABLED=1 npx next build --webpack \
  && npm prune --omit=dev --ignore-scripts
