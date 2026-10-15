@@ -8,6 +8,7 @@ import { ApiError, api, cx, streamEvents, useApi } from "@/lib/ui";
 import { Chip, Dot, Field, Icon, Spinner, Toggle } from "@/components/ui";
 import { BigStat, Headline, Prompt, StandaloneShell, Terminal, TermTabs } from "@/components/shell/standalone";
 import { useMe } from "@/lib/me";
+import { UploadFolder } from "@/components/screens/upload-folder";
 import { GithubSaved, GithubTokenField, useGithubAccess } from "@/components/screens/github-access";
 
 type Log = { t: number; stage: string; msg: string; level: "info" | "warn" | "error" | "done" };
@@ -21,10 +22,11 @@ function Import() {
   const sp = useSearchParams();
   const existing = sp.get("project");
   const prefillUrl = sp.get("url") || "";
-  const [mode, setMode] = useState<"folder" | "git">(prefillUrl ? "git" : "folder");
+  const wantMode = sp.get("mode");
+  const [mode, setMode] = useState<"folder" | "git" | "upload">(wantMode === "upload" ? "upload" : prefillUrl ? "git" : "folder");
   const me = useMe();
   const cloud = !!me?.cloud;
-  useEffect(() => { if (cloud) setMode("git"); }, [cloud]);
+  useEffect(() => { if (cloud) setMode((m) => (m === "folder" ? (prefillUrl ? "git" : "upload") : m)); }, [cloud, prefillUrl]);
   const [dir, setDir] = useState<string>("");
   const [picked, setPicked] = useState<string>("");
   const [gitUrl, setGitUrl] = useState(prefillUrl);
@@ -70,7 +72,7 @@ function Import() {
   const stageIdx = STAGES.findIndex(([s]) => s === stage);
   const done = stage === "done";
   const progress = done ? 100 : stage ? Math.round(((stageIdx + 0.5) / (STAGES.length - 1)) * 100) : 0;
-  const canStart = !busy && (mode === "folder" ? !!picked : !!gitUrl && !(priv && !gh.data?.configured && !draft.token.trim()));
+  const canStart = !busy && mode !== "upload" && (mode === "folder" ? !!picked : !!gitUrl && !(priv && !gh.data?.configured && !draft.token.trim()));
 
   return (
     <StandaloneShell back={{ href: "/", label: "Projects" }} width={820}>
@@ -81,9 +83,11 @@ function Import() {
           sub={existing ? "The map is rebuilt from the current code. Confirmed bindings and notes are kept." : "Secrets are never read, nothing is modified, and you can remove the project any time."} />
 
         {!stage && (
-          <Terminal label="Source" right={<TermTabs value={mode} onChange={setMode} items={cloud ? [{ id: "git", label: "git url" }] : [{ id: "folder", label: "folder" }, { id: "git", label: "git url" }]} />}>
+          <Terminal label="Source" right={<TermTabs value={mode} onChange={setMode} items={cloud ? [{ id: "upload", label: "upload folder" }, { id: "git", label: "git url" }] : [{ id: "folder", label: "folder" }, { id: "git", label: "git url" }]} />}>
             <div className="flex flex-col gap-4">
-              {mode === "folder" ? (
+              {mode === "upload" ? (
+                <UploadFolder onDone={(slug) => { setErr(null); setBusy(true); void run(slug); }} />
+              ) : mode === "folder" ? (
                 <>
                   <div className="flex items-center gap-2 text-[12.5px] text-muted">
                     <button className="btn-icon btn-sm" disabled={!listing.data?.parent} onClick={() => setDir(listing.data!.parent!)} title="Up one level"><span className="rotate-90 inline-flex">{Icon.back({ size: 14 })}</span></button>

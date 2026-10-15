@@ -35,13 +35,13 @@ export default function Start() {
         {/* ---------- hero ---------- */}
         <section className="relative flex flex-col items-center gap-8 pt-8">
           <div aria-hidden className="absolute -top-10 left-1/2 -translate-x-1/2 w-[720px] h-[360px] rounded-full pointer-events-none" style={{ background: "radial-gradient(ellipse at center, rgba(52,211,153,.10), transparent 65%)" }} />
-          <Headline a="See your whole app." b="Change it safely." sub="Arkus reads the code and the database on this machine and draws pages → APIs → tables. Local only; nothing leaves your laptop." className="relative" />
+          <Headline a="See your whole app." b="Change it safely." sub={cloud ? "Arkus reads your code from GitHub or an uploaded folder, connects to your database, and draws pages → APIs → tables. Your projects are private to your account." : "Arkus reads the code and the database on this machine and draws pages → APIs → tables. Local only; nothing leaves your laptop."} className="relative" />
 
-          <Terminal className="relative w-full max-w-[640px] shadow-[0_24px_64px_rgba(0,0,0,.45)]" right={<TermTabs value={tab} onChange={setTab} items={cloud ? [{ id: "github", label: "github" }] : [{ id: "folder", label: "folder" }, { id: "github", label: "github" }]} />}>
+          <Terminal className="relative w-full max-w-[640px] shadow-[0_24px_64px_rgba(0,0,0,.45)]" right={<TermTabs value={tab} onChange={setTab} items={cloud ? [{ id: "github", label: "github" }, { id: "folder", label: "upload folder" }] : [{ id: "folder", label: "folder" }, { id: "github", label: "github" }]} />}>
             {tab === "folder" ? (
-              <Link href="/import" className="group flex items-center gap-3 h-12 px-4 rounded-[7px] border border-border bg-bg-deep hover:border-accent/60 transition text-left">
+              <Link href={cloud ? "/import?mode=upload" : "/import"} className="group flex items-center gap-3 h-12 px-4 rounded-[7px] border border-border bg-bg-deep hover:border-accent/60 transition text-left">
                 <Prompt />
-                <span className="font-mono text-[14px] text-text-2 group-hover:text-text transition flex-1 truncate">Open a local folder<span className="text-dim">…</span></span>
+                <span className="font-mono text-[14px] text-text-2 group-hover:text-text transition flex-1 truncate">{cloud ? "Upload a folder from your computer" : "Open a local folder"}<span className="text-dim">…</span></span>
                 <span className="font-mono text-[11px] text-dim group-hover:text-accent transition inline-flex items-center gap-1">browse {Icon.chevron({ size: 12 })}</span>
               </Link>
             ) : (
@@ -76,7 +76,7 @@ export default function Start() {
             <div className="rounded-[10px] border border-dashed border-border-strong px-6 py-10 text-center flex flex-col items-center gap-2">
               <span className="w-9 h-9 rounded-[8px] bg-surface-2 border border-border text-muted flex items-center justify-center">{Icon.map({ size: 17 })}</span>
               <div className="prose text-[15px] font-semibold text-text mt-1">No projects yet</div>
-              <div className="prose text-[13px] text-muted max-w-[420px]">Open a folder or paste a repository above. Arkus reads it in place, shows the map and changes nothing.</div>
+              <div className="prose text-[13px] text-muted max-w-[420px]">{cloud ? "Paste a GitHub repository or upload a folder above. " : "Open a folder or paste a repository above. "}Arkus reads it in place, shows the map and changes nothing.</div>
             </div>
           )}
 
