@@ -2,6 +2,7 @@
 // (test -> save -> introspect -> snapshot -> activity), re-test, re-sync with diff, removal.
 // RULE: the connection url never leaves this module in plaintext except into dbconn's drivers.
 import { prisma, j } from "@/lib/db";
+import { assertPublicHost } from "@/lib/netguard";
 import { isCloud } from "../auth";
 import { openConnection, parseDbUrl, redact, testConnection, type DbConfig, type Engine, type TestResult } from "./dbconn";
 import { introspect } from "./introspect";
@@ -93,6 +94,7 @@ export async function upsertDbSource(input: { projectId: string; env: string; en
   dbConfig.engine = parsed.engine;
   const name = (input.name || "").trim().slice(0, 80) || parsed.database || parsed.file?.split(/[\\/]/).pop() || `${parsed.engine} ${env}`;
   const test = await testConnection(dbConfig, baseDir);
+  if (parsed.host) await assertPublicHost(parsed.host, "database host");
   const { config } = buildConfig(parsed.engine, input.url, Boolean(input.schemaOnly), test.local);
 
   const existing = await prisma.source.findMany({ where: { projectId, kind: "db", env }, orderBy: { createdAt: "desc" } });

@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { clientIp, limited, limitsOn, tooMany } from "@/lib/ratelimit";
 import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import path from "node:path";
 import { prisma, j } from "@/lib/db";
@@ -17,6 +18,7 @@ export async function GET() {
 
 /** POST { mode: "connected", rootPath } | { mode: "connected", repoUrl } | { mode: "designed", name, idea? } */
 export async function POST(req: Request) {
+  if (limitsOn() && limited(`import:${clientIp(req)}`, 20, 3600000)) return tooMany("import requests");
   try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const me = await currentUser();
   if (!me) return bad("Sign in required", 401);

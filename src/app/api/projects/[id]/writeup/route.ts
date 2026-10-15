@@ -1,4 +1,5 @@
 import { endpointWriteup, senseCheck } from "@/lib/arkus/writeups";
+import { clientIp, limited, limitsOn, tooMany } from "@/lib/ratelimit";
 import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { bad, ok, readJson } from "../../../_util";
 import { resolveProject } from "@/lib/arkus/project";
@@ -6,6 +7,7 @@ import { resolveProject } from "@/lib/arkus/project";
 type Ctx = { params: Promise<{ id: string }> };
 /** GET ?key=endpoint:GET /x[&force=1] → Writeup */
 export async function GET(req: Request, { params }: Ctx) {
+  if (limitsOn() && limited(`writeup:${clientIp(req)}`, 60, 600000)) return tooMany("writeup requests");
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("Not found", 404);

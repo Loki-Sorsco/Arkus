@@ -2,6 +2,7 @@
 //      history = the last 60 scores ([{ at, overall, areas }], one per computed report) for the trend sparkline.
 // POST /api/projects/[id]/health { issueId } → { explanation } (AI; null when AI is off — never fails)
 import { loadGraph } from "@/lib/arkus/graph";
+import { clientIp, limited, limitsOn, tooMany } from "@/lib/ratelimit";
 import { computeHealth, type HealthReport } from "@/lib/arkus/health";
 import { makeReader, SECRET_FILE_RE } from "@/lib/arkus/fs";
 import { resolveProject } from "@/lib/arkus/project";
@@ -49,6 +50,7 @@ export async function GET(req: Request, { params }: Ctx) {
 }
 
 export async function POST(req: Request, { params }: Ctx) {
+  if (limitsOn() && limited(`explain:${clientIp(req)}`, 40, 600000)) return tooMany("explain requests");
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("Not found", 404);

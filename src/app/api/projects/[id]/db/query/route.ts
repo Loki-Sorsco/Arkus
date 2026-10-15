@@ -2,6 +2,7 @@
 //   { env, sql }      → guardRead → execute (read-only) → { columns, rows (masked), ms, truncated } + Query log row
 //   { env, question } → nl2sql → { sql, explanation, assumptions } WITHOUT executing (user clicks Run)
 import { resolveProject } from "@/lib/arkus/project";
+import { clientIp, limited, limitsOn, tooMany } from "@/lib/ratelimit";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { connForProject, redact, type Engine } from "@/lib/arkus/dbconn";
@@ -13,6 +14,7 @@ import { nlToSql } from "@/lib/arkus/nl2sql";
 type Body = { env?: string; sql?: string; question?: string; glossary?: Record<string, string> };
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (limitsOn() && limited(`query:${clientIp(req)}`, 120, 600000)) return tooMany("query requests");
   const { id: idOrSlug } = await params;
   const resolved = await resolveProject(idOrSlug);
   if (!resolved) return Response.json({ error: "project_not_found" }, { status: 404 });

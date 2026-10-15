@@ -1,8 +1,10 @@
 // GET → redirect to Google. State + PKCE verifier live in a short-lived httpOnly cookie.
 import { NextResponse } from "next/server";
+import { clientIp, limited, limitsOn, tooMany } from "@/lib/ratelimit";
 import { cookieOptions, googleAuthUrl, googleConfigured, isCloud, publicUrl, STATE_COOKIE } from "@/lib/auth";
 
 export async function GET(req: Request) {
+  if (limitsOn() && limited(`sign-in:${clientIp(req)}`, 30, 600000)) return tooMany("sign-in requests");
   if (!isCloud()) return NextResponse.redirect(`${publicUrl()}/`);
   if (!googleConfigured()) return NextResponse.json({ error: "Google sign-in is not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)" }, { status: 500 });
   const u = new URL(req.url);

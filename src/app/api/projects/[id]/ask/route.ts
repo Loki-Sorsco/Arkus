@@ -1,10 +1,12 @@
 // POST { question, history? } → grounded answer with citations (see lib/arkus/ask.ts).
 import { prisma } from "@/lib/db";
+import { clientIp, limited, limitsOn, tooMany } from "@/lib/ratelimit";
 import { askProject, type AskMessage } from "@/lib/arkus/ask";
 import { resolveProject } from "@/lib/arkus/project";
 import { bad, ok, readJson } from "../../../_util";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (limitsOn() && limited(`ask:${clientIp(req)}`, 40, 600000)) return tooMany("ask requests");
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("Not found", 404);

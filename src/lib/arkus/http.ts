@@ -2,6 +2,7 @@
 // table per project+env; saved requests and history are plain JSON there. `sendRequest` runs server
 // side (no CORS), follows at most 5 redirects, caps the body at 2 MB and refuses non-http(s) URLs.
 import { prisma } from "../db";
+import { assertPublicHost, NetGuardError } from "@/lib/netguard";
 import { decrypt, encrypt, isEncrypted } from "./secrets";
 
 export type KV = { name: string; value: string; enabled: boolean };
@@ -123,6 +124,7 @@ export async function sendRequest({ method, url, headers, body, timeoutMs = 30_0
   let target: URL;
   try { target = new URL(url); } catch { return fail(`Invalid URL: ${url || "(empty)"}`); }
   if (target.protocol !== "http:" && target.protocol !== "https:") return fail(`Only http(s) URLs can be sent (got ${target.protocol})`);
+  try { await assertPublicHost(target.hostname, "URL"); } catch (e) { if (e instanceof NetGuardError) return fail(e.message); throw e; }
   const m = method.toUpperCase();
   const hasBody = body != null && body !== "" && m !== "GET" && m !== "HEAD";
   const ac = new AbortController();
@@ -137,6 +139,7 @@ export async function sendRequest({ method, url, headers, body, timeoutMs = 30_0
       if (hop === MAX_REDIRECTS) return fail(`Too many redirects (more than ${MAX_REDIRECTS})`);
       cur = new URL(loc, cur);
       if (cur.protocol !== "http:" && cur.protocol !== "https:") return fail(`Redirected to a non-http URL: ${cur.protocol}`);
+      try { await assertPublicHost(cur.hostname, "URL"); } catch (e) { if (e instanceof NetGuardError) return fail(e.message); throw e; }
     }
     if (!res) return fail("No response");
     const buf = Buffer.from(await res.arrayBuffer());

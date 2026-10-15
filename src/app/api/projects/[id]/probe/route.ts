@@ -3,6 +3,7 @@
 // POST   /api/projects/[id]/probe { env, baseUrl?, keys? }  → runs probes now (developer only), returns the same shape
 // DELETE /api/projects/[id]/probe?env=dev                   → clears recorded probes for that env
 import { bad, ok, readJson } from "@/app/api/_util";
+import { clientIp, limited, limitsOn, tooMany } from "@/lib/ratelimit";
 import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { loadGraph } from "@/lib/arkus/graph";
 import { getEnv } from "@/lib/arkus/http";
@@ -37,6 +38,7 @@ export async function GET(req: Request, { params }: Ctx) {
 }
 
 export async function POST(req: Request, { params }: Ctx) {
+  if (limitsOn() && limited(`probe:${clientIp(req)}`, 60, 600000)) return tooMany("probe requests");
   try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const p = await resolveProject(id);

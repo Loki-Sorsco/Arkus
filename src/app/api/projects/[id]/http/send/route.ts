@@ -2,6 +2,7 @@
 // Merges the env's headers + auth with the request, sends from the server (no CORS), appends history and
 // logs an Activity. Secrets are masked in everything returned; auth headers are never logged.
 import { prisma } from "@/lib/db";
+import { clientIp, limited, limitsOn, tooMany } from "@/lib/ratelimit";
 import { currentUser } from "@/lib/auth";
 import { bad, ok, readJson } from "@/app/api/_util";
 import { resolveProject } from "@/lib/arkus/project";
@@ -11,6 +12,7 @@ type Body = { env?: string; savedId?: string; request?: { method?: string; url?:
 const on = (rows?: KV[]) => (Array.isArray(rows) ? rows : []).filter((r) => r && r.enabled !== false && r.name);
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (limitsOn() && limited(`send:${clientIp(req)}`, 240, 600000)) return tooMany("send requests");
   { const me = await currentUser(); if (!me) return Response.json({ error: "Sign in required" }, { status: 401 }); try { const peek = (await req.clone().json()) as { request?: { method?: string } }; const method = String(peek?.request?.method || "GET").toUpperCase(); if (me.role === "viewer" && !["GET", "HEAD", "OPTIONS"].includes(method)) return Response.json({ error: "View-only mode can send GET requests only. Switch to developer mode in Settings to send changes.", code: "viewer" }, { status: 403 }); } catch { /* body parsed below */ } }
   const { id } = await params;
   const p = await resolveProject(id);
