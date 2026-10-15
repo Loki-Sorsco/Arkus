@@ -39,7 +39,7 @@ export function StandaloneShell({ title, back, children, right, width = 1040 }: 
 export function Headline({ a, b, sub, align = "center", size = "lg", className }: { a: ReactNode; b?: ReactNode; sub?: ReactNode; align?: "center" | "left"; size?: "lg" | "md"; className?: string }) {
   return (
     <div className={cx("prose flex flex-col", align === "center" ? "items-center text-center" : "items-start text-left", className)}>
-      <h1 className={cx("font-semibold tracking-tight text-text", size === "lg" ? "text-[44px] leading-[1.08]" : "text-[28px] leading-[1.15]")}>
+      <h1 className={cx("serif font-semibold tracking-tight text-text", size === "lg" ? "text-[44px] leading-[1.08]" : "text-[28px] leading-[1.15]")}>
         {a}{b && <><br /><span className="text-muted">{b}</span></>}
       </h1>
       {sub && <p className={cx("text-muted mt-4 leading-relaxed", size === "lg" ? "text-[15.5px] max-w-[560px]" : "text-[14px] max-w-[620px]")}>{sub}</p>}

@@ -29,7 +29,7 @@ function Login() {
       <div className="w-full max-w-[400px] flex flex-col items-center text-center gap-5">
         <div className="flex items-center gap-2"><ArkusMark size={28} /><span className="font-mono text-[18px] font-semibold">arkus</span></div>
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight leading-tight prose">See your whole app.<br /><span className="text-muted">Change it safely.</span></h1>
+          <h1 className="text-[28px] font-semibold tracking-tight leading-tight serif">See your whole app.<br /><span className="text-muted">Change it safely.</span></h1>
           <p className="text-[13px] text-muted mt-3 leading-relaxed prose">Sign in to keep your projects, maps and plans in one place.</p>
         </div>
         {error && <div className="w-full rounded-[7px] border border-red/40 bg-red/10 text-red-soft text-[12.5px] px-3 py-2 prose">{error === "state" ? "That sign-in link expired. Try again." : "Google sign-in failed. Try again, or contact the person who runs this Arkus."}</div>}

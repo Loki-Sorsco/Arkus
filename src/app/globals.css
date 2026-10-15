@@ -14,15 +14,15 @@
   --topbar-h: 36px; --sidebar-w: 264px; --list-w: 288px; --inspector-w: 360px;
   --shadow-pop: 0 16px 48px rgba(0,0,0,.6), 0 0 0 1px var(--border);
 }
-/* Light theme: same structure, inverted surfaces, darker accents for contrast on white. */
+/* Paper theme (default): the codecontext v2 design — cream canvas, warm borders, ink text, one blue accent. */
 :root[data-theme="light"] {
-  --bg: #F6F7F9; --bg-deep: #FFFFFF; --surface: #FFFFFF; --surface-2: #F1F3F5; --surface-3: #E8EBEF; --surface-4: #DDE1E6;
-  --border: #E3E6EA; --border-strong: #C8CDD4;
-  --text: #14171B; --text-2: #2B3038; --muted: #5C6470; --dim: #8A919C;
-  --accent: #0E9F6E; --accent-hover: #0B845B; --accent-soft: rgba(14,159,110,.12);
-  --green: #15803D; --teal: #0F766E; --amber: #B45309; --gold: #A16207; --red: #DC2626; --red-soft: #B91C1C; --purple: #6D28D9; --blue: #1D4ED8;
-  --grid: #D8DCE2; --danger-bg: #FEE2E2; --blast-bg: #FEF2F2; --line-hl: rgba(0,0,0,.03);
-  --shadow-pop: 0 16px 48px rgba(0,0,0,.14), 0 0 0 1px var(--border);
+  --bg: #E9E3D8; --bg-deep: #FFFDF9; --surface: #FAF7F0; --surface-2: #F3EEE4; --surface-3: #ECE5D8; --surface-4: #E0D8C9;
+  --border: #D9D0BE; --border-strong: #C9BFAC;
+  --text: #22201C; --text-2: #565149; --muted: #6E6A60; --dim: #847D6F;
+  --accent: #2A54B8; --accent-hover: #244A9E; --accent-soft: rgba(42,84,184,.12);
+  --green: #1E7A50; --teal: #0E7B6C; --amber: #9C6B12; --gold: #9C6B12; --red: #B23A2A; --red-soft: #B23A2A; --purple: #6A3FBE; --blue: #2A54B8;
+  --grid: #D9D0BE; --danger-bg: #EBD6D0; --blast-bg: #F6E6E2; --line-hl: rgba(92,76,48,.05);
+  --shadow-pop: 0 16px 48px rgba(60,45,20,.16), 0 0 0 1px var(--border);
 }
 @theme inline {
   --color-bg: var(--bg); --color-bg-deep: var(--bg-deep); --color-surface: var(--surface); --color-surface-2: var(--surface-2); --color-surface-3: var(--surface-3); --color-surface-4: var(--surface-4);
@@ -31,6 +31,7 @@
   --color-accent: var(--accent); --color-accent-hover: var(--accent-hover);
   --color-green: var(--green); --color-teal: var(--teal); --color-amber: var(--amber); --color-gold: var(--gold); --color-red: var(--red); --color-red-soft: var(--red-soft); --color-purple: var(--purple); --color-blue: var(--blue);
   --font-sans: var(--font-plex-sans), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-plex-serif), "IBM Plex Serif", Georgia, serif;
   --font-mono: var(--font-jb-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --radius-sm: 4px; --radius-md: 6px; --radius-lg: 9px; --radius-xl: 12px;
 }
@@ -41,6 +42,9 @@
   body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 13px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
   :root[data-font="terminal"] body { font-family: var(--font-mono); font-size: 12.5px; }
   .prose, .prose * { font-family: var(--font-sans); }
+  .serif { font-family: var(--font-serif); letter-spacing: -0.01em; }
+  :root[data-theme="light"] .btn-primary { color: #FFFDF9; }
+  :root[data-theme="light"] .prod-stripes { background: repeating-linear-gradient(135deg, #B2372F 0 8px, #EBD6D0 8px 16px); color: #FFFDF9; }
   * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
   ::selection { background: var(--accent-soft); }
   a { color: inherit; text-decoration: none; }
