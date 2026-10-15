@@ -50,10 +50,11 @@ export function AskPane() {
   }, [busy, project.slug, env, aiOff, setMsgs]);
 
   const setState = useCallback((msgId: string, actionId: string, patch: Partial<ActionState>) => setMsgs((cur) => cur.map((m) => m.id !== msgId ? m : { ...m, states: { ...(m.states || {}), [actionId]: { ...(m.states?.[actionId] || { status: "pending" }), ...patch } } })), [setMsgs]);
-  const apply = useCallback((msgId: string, a: Action) => gate(async () => {
+  // `confirm` is the typed table name a drop_* schema change needs (the card collects it).
+  const apply = useCallback((msgId: string, a: Action, confirm?: string) => gate(async () => {
     setState(msgId, a.id, { status: "applying", error: undefined });
     try {
-      const r = await api<{ ok: boolean; result?: Record<string, unknown>; error?: string }>(`/api/projects/${project.slug}/actions/apply`, { json: { env, action: a } });
+      const r = await api<{ ok: boolean; result?: Record<string, unknown>; error?: string }>(`/api/projects/${project.slug}/actions/apply`, { json: { env, action: a, ...(confirm ? { confirm } : {}) } });
       setState(msgId, a.id, { status: "applied", result: r.result });
     } catch (e) { setState(msgId, a.id, { status: "error", error: (e as Error).message }); }
   }), [gate, project.slug, env, setState]);
@@ -93,7 +94,7 @@ export function AskPane() {
         ) : (
           <div key={m.id} className="border-t border-border pt-2.5 flex flex-col gap-2">
             <Markdown text={m.content} className={cx("prose text-[13px] [&_p]:text-[13px] [&_li]:text-[13px]", m.mode === "error" && "[&_p]:text-red-soft")} />
-            {m.actions?.map((a) => <ActionCard key={a.id} action={a} state={m.states?.[a.id] || { status: "pending" }} onApply={() => apply(m.id, a)} onSkip={() => setState(m.id, a.id, { status: "skipped" })} />)}
+            {m.actions?.map((a) => <ActionCard key={a.id} action={a} state={m.states?.[a.id] || { status: "pending" }} onApply={(confirm) => apply(m.id, a, confirm)} onSkip={() => setState(m.id, a.id, { status: "skipped" })} />)}
             {!!m.citations?.length && (
               <div className="flex flex-col gap-1">
                 <span className="text-[10.5px] uppercase tracking-[.06em] text-dim">Sources</span>

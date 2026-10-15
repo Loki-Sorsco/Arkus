@@ -8,7 +8,8 @@ import { z } from "zod";
 import { chatJSON, untrusted } from "../llm";
 import { scrubSecrets, SECRET_FILE_RE, BINARY_EXT } from "./fs";
 import { gatherGrounding, type Grounding } from "./actions-grounding";
-import { checkDdl, IDENT_RE } from "./ddl";
+import { DdlError, renderDdl, validateSchemaChange, type SchemaChange } from "./ddl";
+import { checkDdl } from "./ddl-apply";
 import { isSecretColumn } from "./browse";
 import { keyColumns } from "./mutate";
 import type { AskMessage } from "./ask";
@@ -17,7 +18,8 @@ export type ActionBase = { id: string; why: string };
 export type Action =
   | (ActionBase & { kind: "insert_row"; table: string; values: Record<string, unknown> })
   | (ActionBase & { kind: "update_row"; table: string; pk: { name: string; value: unknown }; set: Record<string, unknown> })
-  | (ActionBase & { kind: "add_column"; table: string; column: string; type: string; nullable: boolean; defaultValue?: string | number | boolean | null })
+  /** Any SchemaChange (add_column, create_table, rename_*, alter_column, drop_*, create_index, drop_index); `sql` is the rendered preview. */
+  | (ActionBase & { kind: "schema"; change: SchemaChange; sql: string[] })
   | (ActionBase & { kind: "write_file"; path: string; content: string; create: boolean; summary: string })
   | (ActionBase & { kind: "run_sql"; sql: string });
 export type ActionKind = Action["kind"];
@@ -28,7 +30,7 @@ const values = z.record(z.string(), scalar);
 const ActionSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("insert_row"), table: z.string().min(1), values, why: z.string().default("") }),
   z.object({ kind: z.literal("update_row"), table: z.string().min(1), pk: z.object({ name: z.string().min(1), value: scalar }), set: values, why: z.string().default("") }),
-  z.object({ kind: z.literal("add_column"), table: z.string().min(1), column: z.string().min(1), type: z.string().min(1), nullable: z.boolean().default(true), defaultValue: scalar.optional(), why: z.string().default("") }),
+  z.object({ kind: z.literal("schema"), change: z.unknown(), why: z.string().default("") }),
   z.object({ kind: z.literal("write_file"), path: z.string().min(1), content: z.string(), create: z.boolean().default(true), summary: z.string().default(""), why: z.string().default("") }),
   z.object({ kind: z.literal("run_sql"), sql: z.string().min(1), why: z.string().default("") }),
 ]);
@@ -71,15 +73,13 @@ export function validateAction(raw: unknown, g: Grounding): { action: Action } |
     }
     return { action: { ...base, kind: "insert_row", table: t.name, values: a.values } };
   }
-  if (a.kind === "add_column") {
-    if (!g.hasSchema) return { drop: `add_column on ${a.table}: no database connected for this env` };
-    const t = findTable(g, a.table);
-    if (!t) return { drop: `unknown table "${a.table}"` };
-    const column = a.column.trim();
-    if (!IDENT_RE.test(column)) return { drop: `"${column}" is not a valid column name` };
-    if (t.columns.some((x) => x.name.toLowerCase() === column.toLowerCase())) return { drop: `${t.name}.${column} already exists` };
-    if (isSecret(column)) return { drop: `${t.name}.${column} looks like a secret column` };
-    return { action: { ...base, kind: "add_column", table: t.name, column, type: a.type.trim(), nullable: a.nullable, ...(a.defaultValue !== undefined ? { defaultValue: a.defaultValue } : {}) } };
+  if (a.kind === "schema") {
+    if (!g.hasSchema || !g.engine) return { drop: "schema change: no database connected for this env" };
+    // Drops are allowed as proposals; applying one still needs the typed table name (the card asks for it).
+    try {
+      const v = validateSchemaChange(a.change, g.tables, g.engine, { requireConfirm: false });
+      return { action: { ...base, kind: "schema", change: v.change, sql: renderDdl(v.change, g.engine, v.current) } };
+    } catch (e) { return { drop: e instanceof DdlError ? e.message : "invalid schema change" }; }
   }
   if (a.kind === "write_file") {
     if (!g.project.rootPath) return { drop: "this project has no code folder" };
@@ -105,9 +105,9 @@ function systemPrompt(g: Grounding): string {
     "Action shapes (every action has a short `why`):",
     "  { kind: \"insert_row\", table, values: { column: value }, why }  — one new row. Only columns that exist; leave out auto-generated keys and timestamps that have defaults; include required columns without defaults (ask via `needs` if you cannot infer them).",
     "  { kind: \"update_row\", table, pk: { name, value }, set: { column: value }, why }  — change one existing row. `pk` must be a column marked pk (or unique) in the facts; if the request identifies the row by another column, ask for its key via `needs`. Never update primary keys.",
-    `  { kind: "add_column", table, column, type, nullable, defaultValue?, why }  — type must be valid for ${engine}${engine === "postgres" ? " (text, integer, bigint, boolean, numeric, timestamptz, jsonb, uuid …)" : engine === "mysql" ? " (varchar(255), int, tinyint(1), datetime, json …)" : engine === "sqlite" ? " (TEXT, INTEGER, REAL, BLOB)" : ""}. A NOT NULL column on a table with rows needs a defaultValue.`,
+    `  { kind: "schema", change, why }  — one schema change. \`change\` is one of: { kind:"add_column", table, column, type, nullable?, default?, unique?, references?:{table,column} } · { kind:"create_table", table, columns:[{ name, type, pk?, nullable?, default?, unique?, references? }] } · { kind:"rename_table", table, to } · { kind:"rename_column", table, column, to } · { kind:"alter_column", table, column, type?, nullable?, default? } · { kind:"create_index", table, columns:[…], name?, unique? } · { kind:"drop_index", table, name } · { kind:"drop_column", table, column } · { kind:"drop_table", table }. Types must be valid for ${engine}${engine === "postgres" ? " (text, integer, bigint, boolean, numeric, timestamptz, jsonb, uuid …)" : engine === "mysql" ? " (varchar(255), int, tinyint(1), datetime, json …)" : engine === "sqlite" ? " (TEXT, INTEGER, REAL, BLOB; alter_column is not possible on SQLite)" : ""}. A NOT NULL column on a table with rows needs a default. Prefer add_column / create_table; only propose drop_* when the user clearly asked to delete something.`,
     "  { kind: \"write_file\", path, content, create, summary, why }  — a whole file (full content, not a diff). `create: true` for new files, false when overwriting an existing file; `path` is relative to the repo root. `summary` is a short commit-style line.",
-    "  { kind: \"run_sql\", sql, why }  — only for DDL the other kinds cannot express (CREATE TABLE, CREATE INDEX, ALTER TABLE … other than add column). One statement. DROP, TRUNCATE and DELETE are forbidden.",
+    "  { kind: \"run_sql\", sql, why }  — escape hatch only, for DDL `schema` cannot express. One ALTER TABLE / CREATE INDEX / CREATE TABLE statement. DROP, TRUNCATE and DELETE are forbidden here.",
     "Rules: propose the SMALLEST change that does what was asked (usually one action, at most six). Never touch secret-like columns (password, token, secret, key, hash). Only reference tables, columns and files that appear in the facts; never invent them. Values must match the column types.",
     `For a new API endpoint${g.framework ? ` (framework: ${g.framework})` : ""}: ${g.framework?.startsWith("nextjs") ? `write the full route file under the project's existing convention (${g.apiDir || "src/app/api"}/<path>/route.ts exporting GET/POST…), copying the imports and helpers (db / prisma client, auth, response helpers) the existing handler sample uses.` : g.framework === "express" || g.framework === "fastify" || g.framework === "hono" ? "write a router / plugin file next to the existing ones in the same style as the sample, plus a second write_file that re-writes the file where routes are registered with the one-line registration added (keep everything else in that file identical)." : "follow the existing handler sample's file layout and style."}`,
     "Keep generated code consistent with the sample: same import style, same database helper, same error handling. Do not add dependencies.",

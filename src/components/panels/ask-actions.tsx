@@ -6,11 +6,11 @@ import CodeMirror from "@uiw/react-codemirror";
 import { useEffect, useMemo, useState } from "react";
 import { useWorkspace } from "@/components/shell/workspace";
 import { Chip, CopyButton, Icon, Spinner, type Tone } from "@/components/ui";
-import { quoteId } from "@/components/screens/db-shared";
 import { arkusTheme, useCmTheme } from "@/components/screens/cm-theme";
 import { langExt } from "@/components/screens/code-editor";
 import { api, cx } from "@/lib/ui";
 import type { Action } from "@/lib/arkus/actions";
+import type { SchemaChange } from "@/lib/arkus/ddl";
 
 export type ActionState = { status: "pending" | "applying" | "applied" | "skipped" | "error"; error?: string; result?: Record<string, unknown>; published?: boolean };
 export type PublishState = { isRepo: boolean; mode: "local" | "pr" | "branch"; branch: string | null; remote: string | null; dirty: number; reason?: string };
@@ -19,22 +19,34 @@ type PublishResp = { ok: boolean; mode: string; branch?: string; commit?: string
 /** Mirrors CHANGE_RE on the server: does this message ask for a change rather than an explanation? */
 export const isChangeRequest = (q: string) => /^\s*(?:please\s+|can you\s+|could you\s+|pls\s+)?(?:add|create|insert|update|change|rename|make|delete|remove|new|set|write|generate|build|drop|alter|append|modify|edit|fix|implement)\b/i.test(q);
 
-const KIND: Record<Action["kind"], { label: string; tone: Tone }> = { insert_row: { label: "Row", tone: "teal" }, update_row: { label: "Row", tone: "teal" }, add_column: { label: "Column", tone: "purple" }, write_file: { label: "Code", tone: "blue" }, run_sql: { label: "SQL", tone: "amber" } };
+const KIND: Record<Action["kind"], { label: string; tone: Tone }> = { insert_row: { label: "Row", tone: "teal" }, update_row: { label: "Row", tone: "teal" }, schema: { label: "Schema", tone: "purple" }, write_file: { label: "Code", tone: "blue" }, run_sql: { label: "SQL", tone: "amber" } };
 const LANG: Record<string, string> = { ts: "typescript", mts: "typescript", tsx: "tsx", js: "javascript", mjs: "javascript", cjs: "javascript", jsx: "jsx", json: "json", css: "css", scss: "css", md: "markdown", py: "python", sql: "sql", html: "html" };
 const langOf = (p: string) => LANG[p.split(".").pop()?.toLowerCase() || ""] || "text";
 const lit = (v: unknown) => v === null || v === undefined ? "NULL" : typeof v === "string" ? `'${v}'` : String(v);
 
+/** Drops need the table name typed before Apply is enabled. */
+export const isDrop = (c: SchemaChange) => c.kind === "drop_table" || c.kind === "drop_column";
+/** The table a schema change leaves behind (for the Open table link). */
+const schemaTable = (c: SchemaChange) => (c.kind === "rename_table" ? c.to : c.kind === "drop_table" ? null : c.table);
+export function describeChange(c: SchemaChange): string {
+  switch (c.kind) {
+    case "create_table": return `Create table ${c.table} (${c.columns.length} column${c.columns.length === 1 ? "" : "s"})`;
+    case "rename_table": return `Rename table ${c.table} to ${c.to}`;
+    case "drop_table": return `Drop table ${c.table}`;
+    case "add_column": return `Add column ${c.table}.${c.column} (${c.type}${c.nullable === false ? ", not null" : ""}${c.unique ? ", unique" : ""})`;
+    case "rename_column": return `Rename ${c.table}.${c.column} to ${c.to}`;
+    case "alter_column": return `Alter ${c.table}.${c.column}`;
+    case "drop_column": return `Drop column ${c.table}.${c.column}`;
+    case "create_index": return `Create ${c.unique ? "unique " : ""}index on ${c.table} (${c.columns.join(", ")})`;
+    case "drop_index": return `Drop index ${c.name} on ${c.table}`;
+  }
+}
 export function summarize(a: Action): string {
   if (a.kind === "insert_row") return `Insert a row into ${a.table}`;
   if (a.kind === "update_row") return `Update ${a.table} where ${a.pk.name} = ${lit(a.pk.value)}`;
-  if (a.kind === "add_column") return `Add column ${a.table}.${a.column} (${a.type}${a.nullable ? "" : ", not null"})`;
+  if (a.kind === "schema") return describeChange(a.change);
   if (a.kind === "write_file") return a.summary || `${a.create ? "Create" : "Edit"} ${a.path}`;
   return `Run ${a.sql.split(/\s+/).slice(0, 3).join(" ")} …`;
-}
-export function alterSql(engine: string | null | undefined, a: Extract<Action, { kind: "add_column" }>): string {
-  const q = (n: string) => quoteId(engine, n);
-  const def = a.defaultValue === undefined || a.defaultValue === null ? null : typeof a.defaultValue === "boolean" ? (engine === "postgres" ? String(a.defaultValue) : a.defaultValue ? "1" : "0") : typeof a.defaultValue === "number" ? String(a.defaultValue) : /^(current_timestamp|now\(\)|null|true|false|-?\d+(\.\d+)?)$/i.test(a.defaultValue) ? a.defaultValue.toUpperCase() : `'${a.defaultValue.replace(/'/g, "''")}'`;
-  return `ALTER TABLE ${a.table.split(".").map(q).join(".")} ADD COLUMN ${q(a.column)} ${a.type}${a.nullable ? "" : " NOT NULL"}${def !== null ? ` DEFAULT ${def}` : ""};`;
 }
 
 /** Tiny line diff (LCS, capped) for the "changed content" preview of an overwrite. */
@@ -88,16 +100,21 @@ function Preview({ a }: { a: Action }) {
       </tbody></table>
     );
   }
-  if (a.kind === "add_column") return <pre className="font-mono text-[12px] bg-bg-deep border border-border rounded-[6px] p-2 whitespace-pre-wrap break-all text-text-2">{alterSql(engine, a)}</pre>;
-  if (a.kind === "run_sql") return <pre className="font-mono text-[12px] bg-bg-deep border border-border rounded-[6px] p-2 whitespace-pre-wrap break-all text-text-2">{a.sql}</pre>;
+  if (a.kind === "schema" || a.kind === "run_sql") {
+    const sql = a.kind === "schema" ? a.sql.map((s) => s + ";").join("\n") : a.sql;
+    return <pre className="font-mono text-[12px] bg-bg-deep border border-border rounded-[6px] p-2 whitespace-pre-wrap break-all text-text-2" title={engine ? `rendered for ${engine}` : undefined}>{sql}</pre>;
+  }
   return <FilePreview a={a} />;
 }
 
-export function ActionCard({ action: a, state, onApply, onSkip }: { action: Action; state: ActionState; onApply: () => void; onSkip: () => void }) {
+export function ActionCard({ action: a, state, onApply, onSkip }: { action: Action; state: ActionState; onApply: (confirm?: string) => void; onSkip: () => void }) {
   const { openNode, openFile, project } = useWorkspace();
+  const [typed, setTyped] = useState("");
   const k = KIND[a.kind];
   const done = state.status === "applied";
   const local = done && a.kind === "write_file" && Boolean(state.result?.local);
+  const drop = a.kind === "schema" && isDrop(a.change) ? a.change.table : null;
+  const tableLink = done ? (a.kind === "insert_row" || a.kind === "update_row" ? a.table : a.kind === "schema" ? schemaTable(a.change) : a.kind === "run_sql" && state.result?.table ? String(state.result.table) : null) : null;
   return (
     <div className={cx("card p-2.5 flex flex-col gap-2", done && "border-green/30", state.status === "skipped" && "opacity-60")}>
       <div className="flex items-center gap-2 min-w-0">
@@ -111,13 +128,16 @@ export function ActionCard({ action: a, state, onApply, onSkip }: { action: Acti
       {state.status !== "skipped" && <Preview a={a} />}
       {state.error && <div className="text-[12px] text-red-soft prose">{state.error}</div>}
       {local && <div className="text-[12px] text-muted prose">{state.result?.upload ? "Saved to your Arkus copy." : <>Saved to <span className="font-mono text-text-2">{a.path}</span>. Commit it with git when you are ready.</>}</div>}
+      {drop && !done && state.status !== "skipped" && (
+        <label className="flex items-center gap-2 text-[12px] text-amber"><span className="flex-none">This deletes data. Type <span className="font-mono">{drop}</span> to enable Apply:</span><input className="input input-sm font-mono text-[12px] flex-1 min-w-0" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={drop} /></label>
+      )}
       <div className="flex items-center gap-1.5">
-        {done && (a.kind === "insert_row" || a.kind === "update_row" || a.kind === "add_column" || (a.kind === "run_sql" && Boolean(state.result?.table))) && <button className="btn-subtle btn-xs -ml-2" onClick={() => openNode(`table:${a.kind === "run_sql" ? String(state.result?.table) : a.table}`)}>{Icon.table({ size: 12 })} Open table</button>}
+        {tableLink && <button className="btn-subtle btn-xs -ml-2" onClick={() => openNode(`table:${tableLink}`)}>{Icon.table({ size: 12 })} Open table</button>}
         {done && a.kind === "write_file" && project.rootPath && <button className="btn-subtle btn-xs -ml-2" onClick={() => openFile(a.path)}>{Icon.pages({ size: 12 })} Open file</button>}
         <span className="flex-1" />
         {(state.status === "pending" || state.status === "error" || state.status === "applying") && <>
           <button className="btn-ghost btn-xs" disabled={state.status === "applying"} onClick={onSkip}>Skip</button>
-          <button className="btn-primary btn-xs dev-only" disabled={state.status === "applying"} onClick={onApply}>{state.status === "applying" ? <Spinner /> : Icon.check({ size: 12 })} {state.status === "error" ? "Retry" : "Apply"}</button>
+          <button className={cx("btn-xs dev-only", drop ? "btn-danger" : "btn-primary")} disabled={state.status === "applying" || (drop !== null && typed !== drop)} onClick={() => onApply(drop ? typed : undefined)}>{state.status === "applying" ? <Spinner /> : Icon.check({ size: 12 })} {state.status === "error" ? "Retry" : "Apply"}</button>
         </>}
       </div>
     </div>
