@@ -5,6 +5,7 @@
 // is stored encrypted server-side; it is never shown again.
 import { useEffect, useState } from "react";
 import { useWorkspace, type Env } from "@/components/shell/workspace";
+import { useMe } from "@/lib/me";
 import { CopyButton, Field, Icon, Modal, Spinner, Toggle, useToast } from "@/components/ui";
 import { cx, fmtNum } from "@/lib/ui";
 import { dbBase, ENGINES, post, type ConnectResp, type Engine, type PublicSource, type TestResult, type TestStage } from "./db-shared";
@@ -15,10 +16,14 @@ const ROLE_SQL: Record<Engine, string> = {
   sqlite: `-- SQLite has no roles: Arkus opens the file read-only and only ever issues SELECTs.\n-- Keep the file outside your deploy bundle.`,
 };
 
+/** Engine implied by a pasted connection string, so the dropdown follows the paste. */
+const detectEngine = (v: string): Engine | null => { const l = v.trim().toLowerCase(); if (/^postgres(ql)?:\/\//.test(l)) return "postgres"; if (/^mysql2?:\/\//.test(l)) return "mysql"; if (/^(file:|sqlite:)|\.(db|sqlite3?)$/.test(l)) return "sqlite"; return null; };
+
 export function ConnectDbModal({ open, onClose, env, existing, onConnected }: { open: boolean; onClose: () => void; env: Env; existing?: PublicSource | null; onConnected?: (r: ConnectResp) => void | Promise<void> }) {
   const { project, reloadProject, reloadGraph } = useWorkspace();
   const { toast } = useToast();
   const base = dbBase(project.slug);
+  const me = useMe();
   const [engine, setEngine] = useState<Engine>("postgres");
   const [url, setUrl] = useState("");
   const [schemaOnly, setSchemaOnly] = useState(false);
@@ -29,7 +34,7 @@ export function ConnectDbModal({ open, onClose, env, existing, onConnected }: { 
 
   useEffect(() => {
     if (!open) return;
-    setEngine((existing?.engine as Engine) || (project.stack?.dbEngineHint as Engine) || "postgres");
+    setEngine((existing?.engine as Engine) || (me?.cloud ? "postgres" : (project.stack?.dbEngineHint as Engine) || "postgres"));
     setSchemaOnly(!!existing?.schemaOnly); setUrl(""); setTest(null); setBusy(null); setRoleOpen(false);
   }, [open, existing, project.stack?.dbEngineHint]);
 
@@ -60,7 +65,7 @@ export function ConnectDbModal({ open, onClose, env, existing, onConnected }: { 
   const stageOf = (name: string): TestStage | undefined => test?.stages.find((s) => s.name === name);
 
   return (
-    <Modal open={open} onClose={onClose} width={620} title={existing ? `Change the ${env} database` : `Connect the ${env} database`} subtitle="Read-only. The connection string is encrypted on this machine and never shown again."
+    <Modal open={open} onClose={onClose} width={620} title={existing ? `Change the ${env} database` : `Connect the ${env} database`} subtitle="The connection string is encrypted on this machine and never shown again."
       footer={<>
         <button className="btn-ghost" onClick={onClose} disabled={busy === "connect"}>Cancel</button>
         <button className="btn-ghost" disabled={!url.trim() || !!busy} onClick={runTest}>{busy === "test" ? <Spinner /> : null} Test connection</button>
@@ -68,9 +73,9 @@ export function ConnectDbModal({ open, onClose, env, existing, onConnected }: { 
       </>}>
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-[180px_1fr] gap-3">
-          <Field label="Engine"><select className="select" value={engine} onChange={(e) => { setEngine(e.target.value as Engine); setTest(null); }}>{ENGINES.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}</select></Field>
+          <Field label="Engine"><select className="select" value={engine} onChange={(e) => { setEngine(e.target.value as Engine); setTest(null); }}>{ENGINES.filter((e) => !(me?.cloud && e.id === "sqlite")).map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}</select></Field>
           <Field label="Connection string" hint={engine === "sqlite" ? "Relative paths resolve from the project folder." : "Use a SELECT-only login if you can (see below)."}>
-            <input autoFocus className="input font-mono" value={url} onChange={(e) => { setUrl(e.target.value); setTest(null); }} placeholder={eng.placeholder} spellCheck={false} onKeyDown={(e) => { if (e.key === "Enter") runTest(); }} />
+            <input autoFocus className="input font-mono" value={url} onChange={(e) => { const v = e.target.value; setUrl(v); setTest(null); const guess = detectEngine(v); if (guess) setEngine(guess); }} placeholder={eng.placeholder} spellCheck={false} onKeyDown={(e) => { if (e.key === "Enter") runTest(); }} />
           </Field>
         </div>
         <Toggle checked={schemaOnly} onChange={(b) => { setSchemaOnly(b); setTest(null); }} label="Schema only" hint="Introspect tables and keys, never read rows. The data grid and queries stay off for this environment." />
