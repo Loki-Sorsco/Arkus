@@ -95,8 +95,10 @@ Arkus V1 is three screens, picked from the left rail (Ctrl 1 / 2 / 3):
   **Structure**. **Query** opens the SQL console, which also takes a question in English when AI is on. **Diagram** draws the
   schema; the ⋯ menu holds history, drift, sync and connect.
 
-- **Health** (Ctrl 4): a report on security, APIs, frontend and database: what is wrong, why it matters in plain
-  words, and what to do, with Open (jump to the file or screen) and Explain (AI, when on). Runs `npm audit` too.
+- **Health** (Ctrl 4): *Code* is a report on security, APIs, frontend and database: what is wrong, why it matters in
+  plain words, and what to do, with Open (jump to the file or screen) and Explain (AI, when on); runs `npm audit` too.
+  *Live API* sends GET requests to your running app (base URL per environment), keeps status and latency, and charts
+  uptime, p95 and per-endpoint trends so a failing API shows as a red marker, not a sentence.
 
 **Ask** (Ctrl L) opens a chat about the app on the right of any screen. Flows, Plans, Activity, Connections and Settings sit
 behind **More** at the bottom of the rail. Ctrl K finds a page, API or table. Old URLs (`/overview`, `/pages`, `/requests`,

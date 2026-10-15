@@ -55,8 +55,28 @@ model Project {
   writeups   Writeup[]
   blueprints Blueprint[]
   overrides  Override[]
+  probes     Probe[]
 
   @@index([ownerId])
+}
+
+// One live check of an endpoint against the user's running app (Health → Live API).
+model Probe {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  env         String   @default("dev")
+  endpointKey String   // graph key, e.g. "endpoint:GET /api/users"
+  method      String
+  url         String
+  status      Int      // HTTP status, 0 when the request failed to connect
+  ms          Int
+  ok          Boolean  // 2xx/3xx (or 401/403 for auth-guarded endpoints, which still prove the API is up)
+  error       String?
+  at          DateTime @default(now())
+
+  @@index([projectId, env, at])
+  @@index([projectId, endpointKey, at])
 }
 
 // A connected thing: repo folder, database connection, (later) health source. Per environment.

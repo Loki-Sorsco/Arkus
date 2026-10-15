@@ -1,4 +1,5 @@
-// GET  /api/projects/[id]/health[?refresh=1] → { report, cached, indexed }
+// GET  /api/projects/[id]/health[?refresh=1] → { report, cached, indexed, history }
+//      history = the last 60 scores ([{ at, overall, areas }], one per computed report) for the trend sparkline.
 // POST /api/projects/[id]/health { issueId } → { explanation } (AI; null when AI is off — never fails)
 import { loadGraph } from "@/lib/arkus/graph";
 import { computeHealth, type HealthReport } from "@/lib/arkus/health";
@@ -9,7 +10,21 @@ import { chatJSON, untrusted } from "@/lib/llm";
 import { bad, ok, readJson } from "../../../_util";
 
 type Ctx = { params: Promise<{ id: string }> };
+type HistoryPoint = { at: string; overall: number; areas: Record<string, number> };
 const cacheKey = (projectId: string) => `health.${projectId}`;
+const historyKey = (projectId: string) => `health.history.${projectId}`;
+const HISTORY_CAP = 60;
+
+async function history(projectId: string): Promise<HistoryPoint[]> {
+  const row = await prisma.setting.findUnique({ where: { key: historyKey(projectId) } });
+  return row ? j<HistoryPoint[]>(row.value, []) : [];
+}
+async function appendHistory(projectId: string, r: HealthReport): Promise<HistoryPoint[]> {
+  const next = [...(await history(projectId)), { at: r.computedAt, overall: r.overall, areas: Object.fromEntries(r.areas.map((a) => [a.area, a.score])) }].slice(-HISTORY_CAP);
+  const key = historyKey(projectId), value = JSON.stringify(next);
+  await prisma.setting.upsert({ where: { key }, update: { value }, create: { key, value } });
+  return next;
+}
 
 async function cached(projectId: string): Promise<HealthReport | null> {
   const row = await prisma.setting.findUnique({ where: { key: cacheKey(projectId) } });
@@ -22,15 +37,15 @@ export async function GET(req: Request, { params }: Ctx) {
   if (!p) return bad("Not found", 404);
   const refresh = new URL(req.url).searchParams.get("refresh") === "1";
   const graph = await loadGraph(p.id);
-  if (!graph.snapshotId) return ok({ report: null, cached: false, indexed: false });
+  if (!graph.snapshotId) return ok({ report: null, cached: false, indexed: false, history: [] });
   if (!refresh) {
     const hit = await cached(p.id);
-    if (hit) return ok({ report: hit, cached: true, indexed: true });
+    if (hit) return ok({ report: hit, cached: true, indexed: true, history: await history(p.id) });
   }
   const report = await computeHealth({ id: p.id, rootPath: p.rootPath }, graph);
   const key = cacheKey(p.id), value = JSON.stringify(report);
   await prisma.setting.upsert({ where: { key }, update: { value }, create: { key, value } });
-  return ok({ report, cached: false, indexed: true });
+  return ok({ report, cached: false, indexed: true, history: await appendHistory(p.id, report) });
 }
 
 export async function POST(req: Request, { params }: Ctx) {
