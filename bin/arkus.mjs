@@ -46,6 +46,7 @@ try {
   // Small forward migrations for databases created by earlier versions (schema.sql only adds tables).
   const cols = (t) => db.prepare(`PRAGMA table_info("${t}")`).all().map((c) => c.name);
   if (!cols("Project").includes("ownerId")) db.exec(`ALTER TABLE "Project" ADD COLUMN "ownerId" TEXT NOT NULL DEFAULT 'local'; CREATE INDEX IF NOT EXISTS "Project_ownerId_idx" ON "Project"("ownerId");`);
+  if (!cols("User").includes("role")) db.exec(`ALTER TABLE "User" ADD COLUMN "role" TEXT NOT NULL DEFAULT 'developer';`);
   db.close();
 } catch (e) { console.error("Could not prepare the Arkus database:", e.message); process.exit(1); }
 

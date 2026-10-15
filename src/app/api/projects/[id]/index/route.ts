@@ -1,5 +1,6 @@
 // POST → Server-Sent Events stream of index log lines, ending with a "done" or "error" event.
 import { indexProject } from "@/lib/arkus/indexer";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { bad } from "../../../_util";
 import { resolveProject } from "@/lib/arkus/project";
 
@@ -7,6 +8,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("Not found", 404);

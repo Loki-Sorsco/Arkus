@@ -5,9 +5,11 @@ import { cookieOptions, googleAuthUrl, googleConfigured, isCloud, publicUrl, STA
 export async function GET(req: Request) {
   if (!isCloud()) return NextResponse.redirect(`${publicUrl()}/`);
   if (!googleConfigured()) return NextResponse.json({ error: "Google sign-in is not configured (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET)" }, { status: 500 });
-  const next = new URL(req.url).searchParams.get("next") || "/";
+  const u = new URL(req.url);
+  const next = u.searchParams.get("next") || "/";
+  const role = u.searchParams.get("role") === "viewer" ? "viewer" : "developer";
   const { url, state, verifier } = googleAuthUrl();
   const res = NextResponse.redirect(url);
-  res.cookies.set(STATE_COOKIE, JSON.stringify({ state, verifier, next: next.startsWith("/") ? next : "/" }), { ...cookieOptions(new Date(Date.now() + 10 * 60e3)) });
+  res.cookies.set(STATE_COOKIE, JSON.stringify({ state, verifier, role, next: next.startsWith("/") ? next : "/" }), { ...cookieOptions(new Date(Date.now() + 10 * 60e3)) });
   return res;
 }

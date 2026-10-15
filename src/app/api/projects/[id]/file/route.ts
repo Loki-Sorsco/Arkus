@@ -2,6 +2,7 @@
 // Path-safe like the source route: resolve inside rootPath, refuse secret files, binaries, and big files.
 // PUT is optimistic-concurrency (baseHash), atomic (temp + rename), and preserves the file's line endings.
 import { createHash } from "node:crypto";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/db";
@@ -39,6 +40,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 }
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p || !p.rootPath) return bad("Not found", 404);

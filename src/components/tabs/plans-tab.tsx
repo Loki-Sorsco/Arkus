@@ -56,7 +56,7 @@ export function PlansTab({ tab }: { tab: Tab }) {
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
-      <TabToolbar title={<><span className="font-mono text-dim font-normal">#{plan.no}</span><span className="truncate max-w-[420px]">{plan.title}</span><Chip tone={pipelineTone(plan.pipeline)}>{plan.pipeline.replace("_", " ")}</Chip></>} meta={`${plan.env}${plan.branch ? ` · ${plan.branch}` : ""}`} right={<>{secondary}{primary}</>} />
+      <TabToolbar title={<><span className="font-mono text-dim font-normal">#{plan.no}</span><span className="truncate max-w-[420px]">{plan.title}</span><Chip tone={pipelineTone(plan.pipeline)}>{plan.pipeline.replace("_", " ")}</Chip></>} meta={`${plan.env}${plan.branch ? ` · ${plan.branch}` : ""}`} right={<span className="dev-only flex items-center gap-1.5">{secondary}{primary}</span>} />
       <div className="flex-1 min-h-0 overflow-auto">
         <div className="px-6 py-5 flex flex-col gap-4 max-w-[1000px]">
           <div className="flex items-center gap-2 flex-wrap text-[12.5px]">

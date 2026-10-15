@@ -1,5 +1,6 @@
 // POST { targetDir, force?, database? } → write the starter repo, flip project to connected
 import { resolveProject } from "@/lib/arkus/project";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
@@ -13,6 +14,7 @@ const Body = z.object({
 });
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id: idOrSlug } = await params;
   const resolved = await resolveProject(idOrSlug);
   if (!resolved) return Response.json({ error: "project_not_found" }, { status: 404 });

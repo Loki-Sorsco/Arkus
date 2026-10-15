@@ -2,7 +2,7 @@
 // Who am I, and is this a hosted Arkus? Fetched once per page load and shared.
 import { useEffect, useState } from "react";
 
-export type MeInfo = { cloud: boolean; google: boolean; devLogin?: boolean; user: { id: string; email: string | null; name: string | null; image: string | null } | null };
+export type MeInfo = { cloud: boolean; google: boolean; devLogin?: boolean; user: { id: string; email: string | null; name: string | null; image: string | null; role: "developer" | "viewer" } | null };
 let cache: MeInfo | null = null;
 let inflight: Promise<MeInfo> | null = null;
 export function fetchMe(): Promise<MeInfo> {
@@ -16,3 +16,7 @@ export function useMe(): MeInfo | null {
   return me;
 }
 export async function signOut() { cache = null; inflight = null; await fetch("/api/auth/signout", { method: "POST" }); window.location.reload(); }
+
+/** True while the current user is in view-only mode. */
+export function useViewer(): boolean { const me = useMe(); return me?.user?.role === "viewer"; }
+export async function setRole(role: "developer" | "viewer") { await fetch("/api/auth/role", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role }) }); cache = null; inflight = null; window.location.reload(); }

@@ -3,6 +3,7 @@
 // are bound parameters, update / delete must match exactly one row. 400 { error } on refusal,
 // 403 on schema-only sources, 409 when the optimistic guard / pk matched no row.
 import { NextResponse } from "next/server";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { resolveProject } from "@/lib/arkus/project";
 import { redact } from "@/lib/arkus/dbconn";
 import { applyMutation, MutationError, type Mutation } from "@/lib/arkus/mutate";
@@ -10,6 +11,7 @@ import { applyMutation, MutationError, type Mutation } from "@/lib/arkus/mutate"
 type Body = { env?: string; mutation?: Mutation };
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id: idOrSlug } = await params;
   const resolved = await resolveProject(idOrSlug);
   if (!resolved) return NextResponse.json({ error: "project_not_found" }, { status: 404 });

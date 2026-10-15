@@ -1,4 +1,5 @@
 import { endpointWriteup, senseCheck } from "@/lib/arkus/writeups";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { bad, ok, readJson } from "../../../_util";
 import { resolveProject } from "@/lib/arkus/project";
 
@@ -17,6 +18,7 @@ export async function GET(req: Request, { params }: Ctx) {
 }
 /** POST { text, endpoint, original? } → sense-check result */
 export async function POST(req: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("Not found", 404);

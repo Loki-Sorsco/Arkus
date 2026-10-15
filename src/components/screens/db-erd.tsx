@@ -2,6 +2,7 @@
 // Schema tab: entity-relationship diagram. One node per table (columns with ● PK / ◆ FK / ▤ index
 // markers), teal smoothstep edges for foreign keys, column-level source handles so an edge leaves
 // from the FK row. Click selects the table (→ Inspector); pan/zoom via React Flow.
+import { useLook } from "@/lib/theme";
 import { Background, Controls, Handle, Position, ReactFlow, type Edge, type Node, type NodeProps } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useMemo } from "react";
@@ -54,6 +55,7 @@ const nodeTypes = { table: TableNode };
 const nodeHeight = (t: DbTable) => HEAD_H + PAD + ROW_H * Math.max(1, Math.min(t.columns.length, MAX_COLS) + (t.columns.length > MAX_COLS ? 1 : 0));
 
 export function SchemaErd({ tables, selection, onSelect }: { tables: DbTable[]; selection: string | null; onSelect: (name: string | null) => void }) {
+  const look = useLook();
   const { nodes, edges } = useMemo(() => {
     const names = new Set(tables.map((t) => t.name));
     // FK links (only those whose target table is known)
@@ -84,7 +86,7 @@ export function SchemaErd({ tables, selection, onSelect }: { tables: DbTable[]; 
 
   return (
     <div className="h-full w-full relative">
-      <ReactFlow key={tables.length} nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.15 }} minZoom={0.15} maxZoom={1.8} proOptions={{ hideAttribution: true }} onPaneClick={() => onSelect(null)} nodesDraggable nodesConnectable={false} colorMode="dark" style={{ background: "var(--bg)" }}>
+      <ReactFlow key={tables.length} nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.15 }} minZoom={0.15} maxZoom={1.8} proOptions={{ hideAttribution: true }} onPaneClick={() => onSelect(null)} nodesDraggable nodesConnectable={false} colorMode={look.theme} style={{ background: "var(--bg)" }}>
         <Background color="#2C221B" gap={24} />
         <Controls showInteractive={false} style={{ background: "var(--surface)", border: "1px solid var(--border)" }} />
       </ReactFlow>

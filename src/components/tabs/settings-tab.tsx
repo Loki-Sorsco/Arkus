@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { TabToolbar, useWorkspace } from "@/components/shell/workspace";
-import { Chip, CopyButton, Dot, Field, Panel, Spinner, useToast } from "@/components/ui";
+import { Chip, CopyButton, Icon, Dot, Field, Panel, Spinner, useToast } from "@/components/ui";
 import { api, cx, useApi } from "@/lib/ui";
 
 export function SettingsTab() {
@@ -27,6 +27,7 @@ export function SettingsTab() {
                 <div className="kv"><span>slug</span><span className="font-mono text-text-2">{project.slug}</span><span>mode</span><span className="text-text-2">{project.mode}</span><span>folder</span><span className="font-mono text-[12.5px] text-text-2 break-all">{project.rootPath || "—"}</span><span>stack</span><span className="text-text-2">{project.stack?.summary || "—"}</span></div>
               </div>
             </Panel>
+            <ModePanel />
             <AiPanel onChange={reloadProject} />
             <Panel title="Export">
               <div className="flex items-center gap-3"><a className="btn-ghost btn-sm" href={`/api/projects/${project.slug}/export`}>Export spec JSON</a><span className="text-[12.5px] text-muted">Every entity, field, endpoint and binding in one file. Point your AI at it.</span></div>
@@ -36,6 +37,9 @@ export function SettingsTab() {
             </Panel>
           </div>
           <div className="flex flex-col gap-4 min-w-0">
+            <details className="group">
+              <summary className="cursor-pointer text-[12px] text-dim hover:text-muted select-none list-none flex items-center gap-1.5"><span className="transition-transform group-open:rotate-90">{Icon.chevron({ size: 12 })}</span> Advanced: MCP server, members and roles</summary>
+              <div className="mt-3 flex flex-col gap-4">
             <Panel title="MCP server" right={<Chip tone="muted">coming</Chip>}>
               <div className="flex flex-col gap-3 text-[12.5px] text-muted leading-relaxed">
                 <p>Let Claude Code or Cursor read this project&apos;s spec. Read access only; changes still go through plans.</p>
@@ -46,6 +50,8 @@ export function SettingsTab() {
             <Panel title="Members & roles">
               <div className="text-[12.5px] text-muted leading-relaxed">Local mode: you are the <span className="text-text">Owner</span>. Roles (Editor, Reviewer, Viewer), per-environment permissions and layer scopes arrive with the hosted control plane. Until then the typed-confirmation prod gate stands in for &ldquo;a Reviewer must approve every plan that ships to production&rdquo;.</div>
             </Panel>
+              </div>
+            </details>
           </div>
         </div>
       </div>
@@ -139,6 +145,23 @@ function AiPanel({ onChange }: { onChange: () => Promise<unknown> | void }) {
           </div>
         )}
         {err && mode !== "byok" && <div className="text-[12.5px] text-red-soft">{err}</div>}
+      </div>
+    </Panel>
+  );
+}
+
+function ModePanel() {
+  const me = useMe();
+  const role = me?.user?.role || "developer";
+  return (
+    <Panel title="Working mode" right={<Chip tone={role === "viewer" ? "amber" : "green"}>{role === "viewer" ? "view only" : "developer"}</Chip>}>
+      <div className="grid grid-cols-2 gap-2">
+        {([["developer", "Developer", "Edit code, rows, APIs and plans. Changes are real."], ["viewer", "Viewer", "Look at everything, change nothing. Good for teammates and demos."]] as const).map(([id, label, hint]) => (
+          <button key={id} type="button" onClick={() => { if (role !== id) void setRole(id); }} className={`rounded-[7px] border px-3 py-2.5 text-left transition cursor-pointer ${role === id ? "border-accent bg-accent/10" : "border-border bg-surface hover:border-border-strong"}`}>
+            <div className="text-[13px] font-semibold">{label}</div>
+            <div className="text-[11.5px] text-muted mt-1 leading-snug prose">{hint}</div>
+          </button>
+        ))}
       </div>
     </Panel>
   );

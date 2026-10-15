@@ -10,15 +10,15 @@ import { markdown } from "@codemirror/lang-markdown";
 import { python } from "@codemirror/lang-python";
 import { sql } from "@codemirror/lang-sql";
 import { StateEffect, StateField, type Extension } from "@codemirror/state";
-import { oneDark } from "@codemirror/theme-one-dark";
 import { Decoration, EditorView, type DecorationSet } from "@codemirror/view";
 import CodeMirror from "@uiw/react-codemirror";
+import { useCmTheme } from "@/components/screens/cm-theme";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspace } from "@/components/shell/workspace";
 import { arkusTheme } from "./cm-theme";
 import { Chip, Icon, Kbd, Spinner, useToast } from "@/components/ui";
 import { api, ApiError, cx } from "@/lib/ui";
-import { useMe } from "@/lib/me";
+import { useMe, useViewer } from "@/lib/me";
 
 type FileDoc = { path: string; content: string; hash: string; size: number; language: string; readOnly: boolean; reason?: string };
 export type EditorCursor = { line: number; col: number; language: string; file: string };
@@ -80,6 +80,8 @@ export function OpenInEditorLink({ file, line, className, label = "VS Code" }: {
 
 // ---------- Pane ----------
 export function CodeEditorPane({ file, line, active = true, onDirty, onSaved, onCursor, header = true, className }: { file: string; line?: number; active?: boolean; onDirty?: (dirty: boolean) => void; onSaved?: (r: { path: string; hash: string }) => void; onCursor?: (c: EditorCursor | null) => void; header?: boolean; className?: string }) {
+  const cmTheme = useCmTheme();
+  const viewer = useViewer();
   const { project } = useWorkspace();
   const { toast } = useToast();
   const [doc, setDoc] = useState<FileDoc | null>(null);
@@ -148,7 +150,7 @@ export function CodeEditorPane({ file, line, active = true, onDirty, onSaved, on
           {dirty && <span className="inline-flex items-center gap-1.5 text-[11.5px] text-amber"><span className="w-1.5 h-1.5 rounded-full bg-amber" /> modified</span>}
           <span className="flex-1" />
           <OpenInEditorLink file={file} line={line} />
-          <button className={cx("btn-xs", dirty ? "btn-primary" : "btn-subtle")} disabled={!dirty || saving || !doc || doc.readOnly} onClick={() => void save()} title="Save (Ctrl S)">{saving ? <Spinner /> : Icon.check({ size: 12 })} Save <Kbd>⌃S</Kbd></button>
+          <button className={cx("btn-xs dev-only", dirty ? "btn-primary" : "btn-subtle")} disabled={!dirty || saving || !doc || doc.readOnly} onClick={() => void save()} title="Save (Ctrl S)">{saving ? <Spinner /> : Icon.check({ size: 12 })} Save <Kbd>⌃S</Kbd></button>
         </div>
       )}
       {conflict && (
@@ -160,7 +162,7 @@ export function CodeEditorPane({ file, line, active = true, onDirty, onSaved, on
       <div className="flex-1 min-h-0">
         {loadErr ? <div className="p-6 text-[12.5px] text-red-soft">{loadErr}</div>
           : !doc ? <div className="p-6 flex items-center gap-2 text-[12.5px] text-dim"><Spinner /> Opening file</div>
-          : <CodeMirror key={editorKey} value={content} height="100%" style={{ height: "100%" }} theme={oneDark} extensions={extensions} onChange={setContent} onCreateEditor={onCreate} editable={!doc.readOnly} basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true, highlightActiveLineGutter: true, bracketMatching: true, autocompletion: false, tabSize: 2 }} />}
+          : <CodeMirror key={editorKey} value={content} height="100%" style={{ height: "100%" }} theme={cmTheme} extensions={extensions} onChange={setContent} onCreateEditor={onCreate} editable={!doc.readOnly && !viewer} basicSetup={{ lineNumbers: true, foldGutter: true, highlightActiveLine: true, highlightActiveLineGutter: true, bracketMatching: true, autocompletion: false, tabSize: 2 }} />}
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { shapePlan } from "@/lib/arkus/project";
 import { createPlan, type PlanIntent } from "@/lib/arkus/plans";
 import { bad, ok, readJson } from "../../../_util";
@@ -14,6 +15,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
 /** POST { intent: PlanIntent, env? } → plan */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("Not found", 404);

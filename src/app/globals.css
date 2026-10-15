@@ -10,8 +10,19 @@
   --text: #ECEDEF; --text-2: #C9CCD2; --muted: #8A8F99; --dim: #5B606A;
   --accent: #34D399; --accent-hover: #5EEAB4; --accent-soft: rgba(52,211,153,.14);
   --green: #34D399; --teal: #2DD4BF; --amber: #F5B342; --gold: #F5C451; --red: #EF5350; --red-soft: #F58A87; --purple: #A78BFA; --blue: #60A5FA;
+  --grid: #2A2D33; --danger-bg: #4a1f1f; --blast-bg: #1a0e0e; --line-hl: rgba(255,255,255,.025);
   --topbar-h: 36px; --sidebar-w: 264px; --list-w: 288px; --inspector-w: 360px;
   --shadow-pop: 0 16px 48px rgba(0,0,0,.6), 0 0 0 1px var(--border);
+}
+/* Light theme: same structure, inverted surfaces, darker accents for contrast on white. */
+:root[data-theme="light"] {
+  --bg: #F6F7F9; --bg-deep: #FFFFFF; --surface: #FFFFFF; --surface-2: #F1F3F5; --surface-3: #E8EBEF; --surface-4: #DDE1E6;
+  --border: #E3E6EA; --border-strong: #C8CDD4;
+  --text: #14171B; --text-2: #2B3038; --muted: #5C6470; --dim: #8A919C;
+  --accent: #0E9F6E; --accent-hover: #0B845B; --accent-soft: rgba(14,159,110,.12);
+  --green: #15803D; --teal: #0F766E; --amber: #B45309; --gold: #A16207; --red: #DC2626; --red-soft: #B91C1C; --purple: #6D28D9; --blue: #1D4ED8;
+  --grid: #D8DCE2; --danger-bg: #FEE2E2; --blast-bg: #FEF2F2; --line-hl: rgba(0,0,0,.03);
+  --shadow-pop: 0 16px 48px rgba(0,0,0,.14), 0 0 0 1px var(--border);
 }
 @theme inline {
   --color-bg: var(--bg); --color-bg-deep: var(--bg-deep); --color-surface: var(--surface); --color-surface-2: var(--surface-2); --color-surface-3: var(--surface-3); --color-surface-4: var(--surface-4);
@@ -27,10 +38,11 @@
 /* Base styles live in the base layer so utilities (text-*, etc.) always win. */
 @layer base {
   html { color-scheme: dark; }
-  body { background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-sans); font-size: 13px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+  :root[data-font="terminal"] body { font-family: var(--font-mono); font-size: 12.5px; }
   .prose, .prose * { font-family: var(--font-sans); }
   * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
-  ::selection { background: rgba(52,211,153,.3); }
+  ::selection { background: var(--accent-soft); }
   a { color: inherit; text-decoration: none; }
   code, kbd, pre, .mono { font-family: var(--font-mono); }
   button { font: inherit; color: inherit; }
@@ -75,8 +87,10 @@
   .nav-item svg { @apply flex-none; }
   .tree-row { @apply flex items-center gap-1.5 pr-2 h-[22px] text-[12.5px] text-text-2 cursor-pointer hover:bg-surface-2 hover:text-text whitespace-nowrap; }
   .tree-row.active { @apply bg-surface-3 text-text; }
+  :root[data-role="viewer"] .dev-only { display: none !important; }
   .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
   .glow { box-shadow: 0 0 0 1px var(--glow, var(--accent)), 0 0 22px color-mix(in srgb, var(--glow, var(--accent)) 35%, transparent); }
+  :root[data-theme="light"] .glow { box-shadow: 0 0 0 1.5px var(--glow, var(--accent)), 0 4px 18px color-mix(in srgb, var(--glow, var(--accent)) 22%, transparent); }
   .glow-soft { box-shadow: 0 0 0 1px color-mix(in srgb, var(--glow, var(--accent)) 60%, transparent), 0 0 14px color-mix(in srgb, var(--glow, var(--accent)) 22%, transparent); }
   .dots { background-image: radial-gradient(var(--border-strong) 1px, transparent 1px); background-size: 22px 22px; }
   .stat-box { @apply rounded-[5px] border border-border bg-bg-deep/60 px-2 py-1 flex flex-col gap-0 min-w-0; }
@@ -90,7 +104,7 @@
   .tbl.hover tbody tr:hover td { @apply bg-surface-2; }
   .kv { @apply grid grid-cols-[120px_1fr] gap-x-4 gap-y-1.5 text-[13px]; }
   .kv > :nth-child(odd) { @apply text-dim; }
-  .prod-stripes { background: repeating-linear-gradient(135deg, #2A1616 0 10px, #3A1C1C 10px 20px); }
+  .prod-stripes { background: repeating-linear-gradient(135deg, var(--danger-bg) 0 10px, color-mix(in srgb, var(--danger-bg) 80%, var(--red)) 10px 20px); }
   .spinner { @apply inline-block w-3.5 h-3.5 rounded-full border-2 border-border-strong border-t-accent; animation: spin .8s linear infinite; }
   .md h1 { @apply text-xl font-bold mt-2 mb-2; } .md h2 { @apply text-[15px] font-semibold mt-4 mb-1.5 text-text; } .md h3 { @apply text-[13.5px] font-semibold mt-3 mb-1 text-text; } .md p { @apply my-1.5 text-text-2; }
   .md pre { @apply bg-bg-deep border border-border rounded-[6px] p-3 my-2 text-[12.5px] overflow-auto; } .md code { @apply text-[12.5px] text-gold; } .md pre code { @apply text-text-2; }

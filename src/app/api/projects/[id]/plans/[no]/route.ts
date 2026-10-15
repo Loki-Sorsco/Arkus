@@ -1,4 +1,5 @@
 import { prisma, j } from "@/lib/db";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { previewPlan, verifyPlan } from "@/lib/arkus/plans";
 import { bad, ok, readJson } from "../../../../_util";
 import { resolveProject } from "@/lib/arkus/project";
@@ -17,6 +18,7 @@ export async function GET(_: Request, { params }: Ctx) {
 
 /** PATCH { action: "preview" | "approve" | "verify" | "comment" | "discard" | "decide" | "reopen", text?, decision? } */
 export async function PATCH(req: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id, no } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("Not found", 404);
@@ -65,6 +67,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 }
 
 export async function DELETE(_: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id, no } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("Not found", 404);

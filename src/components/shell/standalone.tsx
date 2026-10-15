@@ -6,7 +6,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { cx } from "@/lib/ui";
 import { Icon } from "@/components/ui";
-import { signOut, useMe } from "@/lib/me";
+import { setRole, signOut, useMe } from "@/lib/me";
+import { useEffect } from "react";
 
 export const ArkusMark = ({ size = 24 }: { size?: number }) => (
   <span className="rounded-[6px] bg-accent text-bg-deep inline-flex items-center justify-center flex-none" style={{ width: size, height: size }}>
@@ -23,6 +24,7 @@ export function StandaloneShell({ title, back, children, right, width = 1040 }: 
         {title && <><span className="text-dim">/</span><span className="text-[12.5px] text-text-2 truncate">{title}</span></>}
         <div className="flex-1" />
         {right && <div className="flex items-center gap-2 flex-none min-w-0">{right}</div>}
+        <RoleAttr />
         <UserMenu />
       </header>
       <div className="flex-1 min-h-0 overflow-auto relative">
@@ -95,4 +97,13 @@ export function UserMenu({ compact }: { compact?: boolean }) {
       <button className="btn-subtle btn-xs" onClick={() => void signOut()} title="Sign out">Sign out</button>
     </div>
   );
+}
+
+/** Mirrors the user's role onto <html data-role> so `.dev-only` elements hide in view-only mode, and shows a badge. */
+export function RoleAttr() {
+  const me = useMe();
+  const role = me?.user?.role || "developer";
+  useEffect(() => { document.documentElement.dataset.role = role; }, [role]);
+  if (role !== "viewer") return null;
+  return <button className="chip text-amber border-amber/40 bg-amber/10 cursor-pointer" title="You can look at everything but not change it. Click to switch to developer mode." onClick={() => void setRole("developer")}>View only</button>;
 }

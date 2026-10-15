@@ -1,11 +1,13 @@
 // POST /api/projects/:id/db/sources/:sid/sync -> re-introspect -> { snapshot, diff, reused, source }
 import { NextResponse } from "next/server";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { resolveProject } from "@/lib/arkus/project";
 import { syncSource } from "@/lib/arkus/dbsources";
 import { redact } from "@/lib/arkus/dbconn";
 
 export async function POST(_: Request, { params }: { params: Promise<{ id: string; sid: string }> }) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id, sid } = await params;
   const project = await resolveProject(id);
   if (!project) return NextResponse.json({ error: "project_not_found" }, { status: 404 });

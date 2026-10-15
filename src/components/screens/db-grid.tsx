@@ -176,7 +176,7 @@ export function DataGrid({ table, tables, engine, jump, onJump, refreshKey, onPe
         {r.data && (r.data.hidden.length > 0 || r.data.masked.length > 0) && <LockChip kind={r.data.hidden.length ? "hidden" : "masked"} count={r.data.hidden.length + r.data.masked.length} />}
         <button className="btn-subtle btn-sm" disabled={!rows.length} onClick={() => r.data && exportRows(rows, r.data.columns, "csv", `${project.slug}-${env}-${table.name}`)}>Export CSV</button>
         {editing && <button className="btn-subtle btn-sm" disabled={applying} onClick={addRow}>{Icon.plus({ size: 13 })} Add row</button>}
-        <button className={cx("btn-sm", editing ? "btn-primary" : "btn-subtle")} disabled={!canEdit} aria-pressed={editing} title={!keyCol ? "This table has no primary key, so Arkus can't target a single row safely" : editing ? "Leave edit mode (staged changes stay until you apply or discard them)" : "Edit cells, add and delete rows; nothing is written until you apply"} onClick={() => { setEditing((e) => !e); setCell(null); }}><PencilIcon /> {editing ? "Done" : "Edit"}</button>
+        <button className={cx("btn-sm dev-only", editing ? "btn-primary" : "btn-subtle")} disabled={!canEdit} aria-pressed={editing} title={!keyCol ? "This table has no primary key, so Arkus can't target a single row safely" : editing ? "Leave edit mode (staged changes stay until you apply or discard them)" : "Edit cells, add and delete rows; nothing is written until you apply"} onClick={() => { setEditing((e) => !e); setCell(null); }}><PencilIcon /> {editing ? "Done" : "Edit"}</button>
       </div>
       {editing && (
         <div className="flex-none flex items-center gap-2 px-6 h-7 border-b border-border bg-surface text-[12px] text-muted border-t-2 border-t-accent">

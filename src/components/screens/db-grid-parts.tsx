@@ -82,7 +82,7 @@ export function InsertRow({ ins, columns, colMeta, onChange, onRemove, hasAction
 export function ChangesBar({ staged, engine, applying, problems, showSql, setShowSql, onApply, onDiscard }: { staged: Staged[]; engine: string | null; applying: boolean; problems: string[]; showSql: boolean; setShowSql: (b: boolean) => void; onApply: () => void; onDiscard: () => void }) {
   const n = staged.length;
   return (
-    <div className="flex-none border-t border-amber/50 bg-surface arise">
+    <div className="flex-none border-t border-amber/50 bg-surface arise dev-only">
       <div className="flex items-center gap-2.5 px-6 h-10 text-[12.5px]">
         <span className="w-2 h-2 rounded-full bg-amber apulse flex-none" />
         <span className="font-semibold">{n} pending change{n === 1 ? "" : "s"}</span>

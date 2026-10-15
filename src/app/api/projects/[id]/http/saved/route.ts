@@ -1,6 +1,7 @@
 // GET /api/projects/:id/http/saved → { requests } · POST { ...SavedRequest } upserts one (id generated
 // when missing) → { request } · DELETE ?id= → { ok }.
 import { bad, ok, readJson } from "@/app/api/_util";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { resolveProject } from "@/lib/arkus/project";
 import { deleteSaved, listSaved, upsertSaved, type SavedRequest } from "@/lib/arkus/http";
 
@@ -14,6 +15,7 @@ export async function GET(_req: Request, { params }: Ctx) {
 }
 
 export async function POST(req: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("project_not_found", 404);
@@ -23,6 +25,7 @@ export async function POST(req: Request, { params }: Ctx) {
 }
 
 export async function DELETE(req: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("project_not_found", 404);

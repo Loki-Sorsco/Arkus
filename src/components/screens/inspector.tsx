@@ -35,7 +35,7 @@ export function Inspector({ extra }: { extra?: React.ReactNode }) {
         {node.file && <div className="text-[11.5px] font-mono text-dim truncate -mt-3" title={node.file}>{node.file}{node.lineStart ? `:${node.lineStart}` : ""}</div>}
 
         {node.type === "table" && (
-          <Section title={`Columns · ${cols.length}`} right={<button className="btn-subtle btn-xs" onClick={() => setAddCol(true)}>{Icon.plus({ size: 12 })} Add column</button>}>
+          <Section title={`Columns · ${cols.length}`} right={<button className="btn-subtle btn-xs dev-only" onClick={() => setAddCol(true)}>{Icon.plus({ size: 12 })} Add column</button>}>
             <div className="border border-border rounded-[6px] overflow-hidden bg-bg-deep/40">
               {cols.map((c) => (
                 <div key={c.name} className="flex items-center gap-2 px-2.5 h-7 text-[12.5px] border-b border-border/50 last:border-0 hover:bg-surface-2 cursor-pointer" onClick={() => select(`column:${node.name}.${c.name}`)}>

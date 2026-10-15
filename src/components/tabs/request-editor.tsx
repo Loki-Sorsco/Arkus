@@ -2,8 +2,8 @@
 // Request half of a request tab (Params | Headers | Body | Auth), the draft model it edits, the auth
 // fields shared with the environment editor, and the EnvironmentModal (base URL · headers · auth per env).
 import { json } from "@codemirror/lang-json";
-import { oneDark } from "@codemirror/theme-one-dark";
 import CodeMirror from "@uiw/react-codemirror";
+import { useCmTheme } from "@/components/screens/cm-theme";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Env } from "@/components/shell/workspace";
 import { useWorkspace } from "@/components/shell/workspace";
@@ -33,6 +33,7 @@ const SECRET_NAMES = /^(authorization|cookie|x-api-key|api-key|x-auth-token)$/i;
 type EditorTab = "params" | "headers" | "body" | "auth";
 
 export function RequestEditor({ draft, onChange }: { draft: Draft; onChange: (patch: Partial<Draft>) => void }) {
+  const syntaxTheme = useCmTheme();
   const [tab, setTab] = useState<EditorTab>(draft.body.mode !== "none" ? "body" : "params");
   const extensions = useMemo(() => [cmTheme, json()], []);
   const on = (rows: KV[]) => rows.filter((r) => r.enabled && r.name).length;
@@ -51,7 +52,7 @@ export function RequestEditor({ draft, onChange }: { draft: Draft; onChange: (pa
         {tab === "params" && <KVGrid rows={draft.params} onChange={(params) => onChange({ params })} namePlaceholder="param" />}
         {tab === "headers" && <KVGrid rows={draft.headers} onChange={(headers) => onChange({ headers })} namePlaceholder="header" secretNames={SECRET_NAMES} />}
         {tab === "body" && draft.body.mode === "none" && <div className="px-3 py-3 text-[12.5px] text-dim">This request has no body.</div>}
-        {tab === "body" && draft.body.mode === "json" && <CodeMirror value={draft.body.text || ""} height="100%" style={{ height: "100%" }} theme={oneDark} extensions={extensions} onChange={(text) => onChange({ body: { ...draft.body, text } })} basicSetup={cmSetup} placeholder={"{\n  \n}"} />}
+        {tab === "body" && draft.body.mode === "json" && <CodeMirror value={draft.body.text || ""} height="100%" style={{ height: "100%" }} theme={syntaxTheme} extensions={extensions} onChange={(text) => onChange({ body: { ...draft.body, text } })} basicSetup={cmSetup} placeholder={"{\n  \n}"} />}
         {tab === "body" && draft.body.mode === "text" && <textarea className="w-full h-full min-h-[120px] resize-none bg-transparent px-3 py-2 font-mono text-[12px] text-text outline-none leading-relaxed" value={draft.body.text || ""} onChange={(e) => onChange({ body: { ...draft.body, text: e.target.value } })} spellCheck={false} placeholder="Raw text body" />}
         {tab === "body" && draft.body.mode === "form" && <KVGrid rows={draft.body.form || []} onChange={(form) => onChange({ body: { ...draft.body, form } })} namePlaceholder="field" />}
         {tab === "auth" && (

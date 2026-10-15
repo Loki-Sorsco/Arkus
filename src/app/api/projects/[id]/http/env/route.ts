@@ -1,6 +1,7 @@
 // GET /api/projects/:id/http/env?env=dev → { env, value } (secrets masked, hasToken)
 // PUT /api/projects/:id/http/env { env, value: HttpEnv } → same; masked token/password keep the stored secret.
 import { bad, ok, readJson } from "@/app/api/_util";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { resolveProject } from "@/lib/arkus/project";
 import { getEnv, maskEnv, putEnv, type HttpEnv } from "@/lib/arkus/http";
 
@@ -17,6 +18,7 @@ export async function GET(req: Request, { params }: Ctx) {
 }
 
 export async function PUT(req: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("project_not_found", 404);

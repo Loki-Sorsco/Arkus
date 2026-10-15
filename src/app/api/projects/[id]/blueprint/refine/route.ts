@@ -1,5 +1,6 @@
 // POST { instruction } | { flipAssumption: id } | { blueprint } → new blueprint version
 import { resolveProject } from "@/lib/arkus/project";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { refineBlueprint, flipAssumption, runDesignChecks } from "@/lib/arkus/architect/generate";
@@ -13,6 +14,7 @@ const Body = z.union([
 ]);
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id: idOrSlug } = await params;
   const resolved = await resolveProject(idOrSlug);
   if (!resolved) return Response.json({ error: "project_not_found" }, { status: 404 });

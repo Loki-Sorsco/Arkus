@@ -16,6 +16,7 @@ model User {
   email     String   @unique
   name      String?
   image     String?
+  role      String   @default("developer") // developer (can edit) | viewer (read-only)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   sessions  Session[]

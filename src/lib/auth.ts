@@ -8,21 +8,43 @@ import { prisma } from "./db";
 export const COOKIE = "arkus_session";
 export const STATE_COOKIE = "arkus_oauth";
 const SESSION_DAYS = 30;
-export type Me = { id: string; email: string | null; name: string | null; image: string | null };
-export const LOCAL_USER: Me = { id: "local", email: null, name: "You", image: null };
+export type Role = "developer" | "viewer";
+export type Me = { id: string; email: string | null; name: string | null; image: string | null; role: Role };
+export const LOCAL_USER: Me = { id: "local", email: null, name: "You", image: null, role: "developer" };
+export const asRole = (r: unknown): Role => (r === "viewer" ? "viewer" : "developer");
 
 export const isCloud = () => process.env.ARKUS_MODE === "cloud";
 export const publicUrl = () => (process.env.ARKUS_URL || "http://localhost:3600").replace(/\/+$/, "");
 
 /** Current user, or null when cloud mode has no valid session. Local mode always returns LOCAL_USER. */
 export async function currentUser(): Promise<Me | null> {
-  if (!isCloud()) return LOCAL_USER;
+  if (!isCloud()) {
+    // Local mode: a single owner, but the working mode (developer / viewer) is still switchable in Settings.
+    try { const row = await prisma.setting.findUnique({ where: { key: "local.role" } }); return { ...LOCAL_USER, role: asRole(row?.value) }; } catch { return LOCAL_USER; }
+  }
   const jar = await cookies();
   const token = jar.get(COOKIE)?.value;
   if (!token) return null;
   const s = await prisma.session.findUnique({ where: { token }, include: { user: true } });
   if (!s || s.expiresAt < new Date()) return null;
-  return { id: s.user.id, email: s.user.email, name: s.user.name, image: s.user.image };
+  return { id: s.user.id, email: s.user.email, name: s.user.name, image: s.user.image, role: asRole(s.user.role) };
+}
+/** Throws (403) unless the current user may change things. Call at the top of every write route. */
+export async function requireDeveloper(): Promise<Me> {
+  const u = await currentUser();
+  if (!u) throw new AuthError();
+  if (u.role !== "developer") throw new RoleError();
+  return u;
+}
+export class RoleError extends Error { status = 403; constructor() { super("You are in view-only mode. Switch to developer mode in Settings to make changes."); } }
+/** JSON response for AuthError / RoleError, or null for other errors. */
+export function authErrorResponse(e: unknown): Response | null {
+  if (e instanceof AuthError || e instanceof RoleError) return Response.json({ error: e.message, code: e instanceof RoleError ? "viewer" : "auth" }, { status: e.status });
+  return null;
+}
+export async function setRole(userId: string, role: Role) {
+  if (!isCloud()) { await prisma.setting.upsert({ where: { key: "local.role" }, update: { value: role }, create: { key: "local.role", value: role } }); return; }
+  await prisma.user.update({ where: { id: userId }, data: { role } });
 }
 export async function requireUser(): Promise<Me> {
   const u = await currentUser();

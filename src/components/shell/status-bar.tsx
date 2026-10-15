@@ -12,7 +12,7 @@ export function StatusBar() {
   const item = "h-full px-2 flex items-center gap-1.5 text-[11.5px] whitespace-nowrap";
   const click = "cursor-pointer hover:bg-white/10";
   return (
-    <div className={cx("h-[22px] flex-none flex items-stretch border-t text-text-2", prod ? "bg-[#4a1f1f] border-red/40 text-red-soft" : "bg-surface-2 border-border")}>
+    <div className={cx("h-[22px] flex-none flex items-stretch border-t text-text-2", prod ? "bg-[var(--danger-bg)] border-red/40 text-red-soft" : "bg-surface-2 border-border")}>
       <div className="flex items-stretch">
         {(["dev", "preview", "prod"] as Env[]).map((e) => (
           <button key={e} onClick={() => setEnv(e)} className={cx(item, click, "font-medium capitalize", env === e ? (e === "prod" ? "bg-red/30 text-text" : "bg-accent text-bg-deep hover:bg-accent-hover") : "text-muted")} title={`Switch to ${e}`}>{e}</button>
@@ -27,7 +27,6 @@ export function StatusBar() {
       {editorStatus && <span className={item}>Ln {editorStatus.line}, Col {editorStatus.col}</span>}
       {editorStatus && <span className={item}>{editorStatus.language}</span>}
       <button className={cx(item, click)} onClick={() => project.ai === false ? go("settings") : setRightPane("ask")} title={project.ai === false ? "AI is off. Turn on AI under Settings." : "AI is on"}>{Icon.spark({ size: 11 })} {project.ai === false ? "AI off" : "AI"}</button>
-      <span className={cx(item, "text-dim")}>Local</span>
     </div>
   );
 }

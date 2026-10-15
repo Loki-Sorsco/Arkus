@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { projectDetail, resolveProject } from "@/lib/arkus/project";
 import { bad, ok, readJson } from "../../_util";
 
@@ -12,6 +13,7 @@ export async function GET(_: Request, { params }: Ctx) {
 }
 
 export async function PATCH(req: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("Not found", 404);
@@ -21,6 +23,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 }
 
 export async function DELETE(_: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const p = await resolveProject(id);
   if (!p) return bad("Not found", 404);

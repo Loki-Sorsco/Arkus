@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import path from "node:path";
 import { prisma, j } from "@/lib/db";
 import { bad, ok, readJson, slugify } from "../_util";
@@ -16,6 +17,7 @@ export async function GET() {
 
 /** POST { mode: "connected", rootPath } | { mode: "connected", repoUrl } | { mode: "designed", name, idea? } */
 export async function POST(req: Request) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const me = await currentUser();
   if (!me) return bad("Sign in required", 401);
   const body = await readJson<{ mode?: string; name?: string; rootPath?: string; repoUrl?: string; token?: string; rememberToken?: boolean }>(req);

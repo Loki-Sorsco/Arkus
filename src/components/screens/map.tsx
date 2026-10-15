@@ -9,6 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LoadedGraph } from "@/lib/arkus/graph";
 import type { GNode } from "@/lib/arkus/types";
 import { cx, fmtNum, methodColor } from "@/lib/ui";
+import { useLook } from "@/lib/theme";
 
 const LANES = ["screen", "endpoint", "table", "external"] as const;
 type Lane = (typeof LANES)[number];
@@ -35,13 +36,13 @@ function MapNode({ data }: NodeProps<Node<NodeData>>) {
   const file = n.file ? n.file.split("/").slice(-2).join("/") : n.type === "external" ? String(n.attrs?.host || "") : "";
   return (
     <div onClick={(e) => { e.stopPropagation(); data.onSelect(n.key); }} style={{ width: W, height: compact ? SLIM_H : RICH_H, ["--glow" as string]: glowColor, borderColor: on ? glowColor : "var(--border)" }}
-      className={cx("rounded-[7px] border bg-surface cursor-pointer transition-[opacity,border-color,box-shadow] hover:border-border-strong flex flex-col", compact ? "px-2.5 py-1.5 justify-center" : "px-3 py-2", state === "dim" && "opacity-[.18]", (state === "selected" || state === "blast-root") && "glow", (state === "lit" || state === "blast") && "glow-soft", red(state) && "bg-[#1a0e0e]")}>
+      className={cx("rounded-[7px] border bg-surface cursor-pointer transition-[opacity,border-color,box-shadow] hover:border-border-strong flex flex-col", compact ? "px-2.5 py-1.5 justify-center" : "px-3 py-2", state === "dim" && "opacity-[.18]", (state === "selected" || state === "blast-root") && "glow", (state === "lit" || state === "blast") && "glow-soft", red(state) && "bg-[var(--blast-bg)]")}>
       <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
       {compact ? (
         <div className="flex items-center gap-1.5 min-w-0">
           {method ? <span className={cx("chip h-[16px] px-1 text-[10px] font-mono font-semibold", methodColor(method))}>{method}</span> : <span className="w-1.5 h-1.5 rounded-full flex-none" style={{ background: LANE_COLOR[lane] }} />}
           <span className="font-mono text-[12.5px] truncate text-text font-medium">{name}</span>
-          <span className="ml-auto text-[10.5px] text-dim truncate flex-none">{stats[0]?.v} {stats[0]?.k}</span>
+          {stats[0] && stats[0].v !== "0" && <span className="ml-auto text-[10.5px] text-dim truncate flex-none">{stats[0].v} {stats[0].k}</span>}
         </div>
       ) : (
         <>
@@ -111,6 +112,7 @@ export type MapProps = { graph: LoadedGraph; selection: string | null; onSelect:
 export function ArchitectureMap({ graph, selection, onSelect, onOpen, layer = "all", filter = "", density = "auto", blast = false }: MapProps) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [hover, setHover] = useState<string | null>(null);
+  const look = useLook();
   const toggle = useCallback((id: string) => setOpen((o) => ({ ...o, [id]: !o[id] })), []);
 
   const { nodes, edges } = useMemo(() => {
@@ -236,10 +238,10 @@ export function ArchitectureMap({ graph, selection, onSelect, onOpen, layer = "a
   return (
     <div className="h-full w-full arkus-map">
       <ReactFlowProvider>
-        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08, maxZoom: 1 }} minZoom={0.12} maxZoom={1.6} onPaneClick={() => onSelect(null)} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} colorMode="dark" style={{ background: "var(--bg)" }} onNodeMouseEnter={(_, n) => { if (n.type === "item" && !blast) setHover(n.id); }} onNodeMouseLeave={() => setHover(null)} onNodeDoubleClick={(_, n) => { if (n.type === "item") onOpen?.(n.id); }}>
-          <Background variant={BackgroundVariant.Dots} color="#2A2D33" gap={22} size={1.2} />
+        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08, maxZoom: 1 }} minZoom={0.12} maxZoom={1.6} onPaneClick={() => onSelect(null)} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} colorMode={look.theme} style={{ background: "var(--bg)" }} onNodeMouseEnter={(_, n) => { if (n.type === "item" && !blast) setHover(n.id); }} onNodeMouseLeave={() => setHover(null)} onNodeDoubleClick={(_, n) => { if (n.type === "item") onOpen?.(n.id); }}>
+          <Background variant={BackgroundVariant.Dots} color="var(--grid)" gap={22} size={1.2} />
           <Controls showInteractive={false} position="bottom-right" />
-          <MiniMap position="top-right" pannable zoomable nodeStrokeWidth={0} nodeBorderRadius={3} nodeColor={(n) => (n.type === "item" ? ({ screen: "#F5C451", endpoint: "#60A5FA", table: "#2DD4BF", external: "#A78BFA" } as Record<string, string>)[(n.data as NodeData).n.type] || "#8A8F99" : n.type === "folder" ? "#3A3F48" : "transparent")} maskColor="rgba(10,10,11,.45)" bgColor="#111214" style={{ width: 170, height: 115 }} />
+          <MiniMap position="top-right" pannable zoomable nodeStrokeWidth={0} nodeBorderRadius={3} nodeColor={(n) => (n.type === "item" ? ({ screen: "#F5C451", endpoint: "#60A5FA", table: "#2DD4BF", external: "#A78BFA" } as Record<string, string>)[(n.data as NodeData).n.type] || "#8A8F99" : n.type === "folder" ? "#3A3F48" : "transparent")} maskColor={look.theme === "light" ? "rgba(246,247,249,.6)" : "rgba(10,10,11,.45)"} bgColor={look.theme === "light" ? "#FFFFFF" : "#111214"} style={{ width: 170, height: 115 }} />
           <Camera selection={selection} filter={filter} blast={blast} onClear={() => onSelect(null)} />
         </ReactFlow>
       </ReactFlowProvider>

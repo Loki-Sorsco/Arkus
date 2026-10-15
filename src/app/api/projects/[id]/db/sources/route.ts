@@ -2,6 +2,7 @@
 // POST /api/projects/:id/db/sources { env, engine?, url, schemaOnly?, name? } -> test -> save (encrypted) -> introspect -> snapshot
 //      -> { ok, source, snapshot, test } · 422 { ok:false, source, test } when the test fails.
 import { NextResponse } from "next/server";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { resolveProject } from "@/lib/arkus/project";
 import { isEnv, listDbSources, upsertDbSource } from "@/lib/arkus/dbsources";
 import { redact, type Engine } from "@/lib/arkus/dbconn";
@@ -16,6 +17,7 @@ export async function GET(_: Request, { params }: Ctx) {
 }
 
 export async function POST(req: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id } = await params;
   const project = await resolveProject(id);
   if (!project) return NextResponse.json({ error: "project_not_found" }, { status: 404 });

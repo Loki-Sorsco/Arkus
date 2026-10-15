@@ -2,9 +2,9 @@
 // Response half of a request tab: status line (status chip · ms · size · copy), Body | Headers tabs.
 // JSON bodies are pretty-printed in a read-only CodeMirror with a fold gutter; "Raw" shows the bytes as sent.
 import { json } from "@codemirror/lang-json";
-import { oneDark } from "@codemirror/theme-one-dark";
 import { EditorView } from "@codemirror/view";
 import CodeMirror from "@uiw/react-codemirror";
+import { useCmTheme } from "@/components/screens/cm-theme";
 import { useMemo, useState } from "react";
 import { Chip, CopyButton, EmptyState, Icon, Kbd, Spinner, Tabs, type Tone } from "@/components/ui";
 import { cx } from "@/lib/ui";
@@ -31,6 +31,7 @@ export const fmtSize = (n: number) => (n < 1024 ? `${n} B` : n < 1024 * 1024 ? `
 const pretty = (text: string): string | null => { const t = text.trim(); if (!t || !(t.startsWith("{") || t.startsWith("["))) return null; try { return JSON.stringify(JSON.parse(t), null, 2); } catch { return null; } };
 
 export function ResponseView({ res, busy }: { res: SendResponse | null; busy: boolean }) {
+  const syntaxTheme = useCmTheme();
   const [tab, setTab] = useState<"body" | "headers">("body");
   const [raw, setRaw] = useState(false);
   const json2 = useMemo(() => (res ? pretty(res.body) : null), [res]);
@@ -61,7 +62,7 @@ export function ResponseView({ res, busy }: { res: SendResponse | null; busy: bo
       </div>
       {res.error && <div className="flex-none flex items-start gap-1.5 px-3 py-2 text-[12.5px] text-red-soft border-b border-border leading-snug">{Icon.warn({ size: 13, className: "mt-0.5 flex-none" })}<span className="break-all">{res.error}</span></div>}
       {tab === "body" ? (
-        showJson ? <div className="flex-1 min-h-0 overflow-hidden"><CodeMirror value={json2} height="100%" style={{ height: "100%" }} theme={oneDark} extensions={extensions} editable={false} basicSetup={cmSetup} /></div>
+        showJson ? <div className="flex-1 min-h-0 overflow-hidden"><CodeMirror value={json2} height="100%" style={{ height: "100%" }} theme={syntaxTheme} extensions={extensions} editable={false} basicSetup={cmSetup} /></div>
           : <pre className="flex-1 min-h-0 overflow-auto px-3 py-2 font-mono text-[12px] leading-relaxed whitespace-pre-wrap break-words select-text text-text-2 bg-bg-deep">{res.body || <span className="text-dim">(empty body)</span>}</pre>
       ) : (
         <div className="flex-1 min-h-0 overflow-auto bg-bg-deep">

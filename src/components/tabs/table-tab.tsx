@@ -87,7 +87,7 @@ function Structure({ table, engine, highlight }: { table: DbTable; engine: strin
             <span className="eyebrow">Columns</span><span className="text-[11px] text-dim tabular-nums">{table.columns.length}</span>
             <span className="flex-1" />
             <button className={cx("btn-subtle btn-xs", ddl && "text-text bg-surface-3")} aria-pressed={ddl} onClick={() => setDdl((d) => !d)} title="Show the CREATE TABLE this schema describes (generated, read-only)">{"</>"} DDL</button>
-            <button className="btn-subtle btn-xs" onClick={() => setAddOpen(true)}>{Icon.plus({ size: 12 })} Add column</button>
+            <button className="btn-subtle btn-xs dev-only" onClick={() => setAddOpen(true)}>{Icon.plus({ size: 12 })} Add column</button>
           </div>
           {ddl ? (
             <div className="card overflow-hidden" style={{ height: Math.min(520, ddlText.split("\n").length * 20 + 14) }}>

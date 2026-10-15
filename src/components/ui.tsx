@@ -64,6 +64,8 @@ export const Icon = {
   column: (p?: { size?: number; className?: string }) => <I {...p} d="M4 4h16v16H4zM4 9h16M9 4v16" />,
   bolt: (p?: { size?: number; className?: string }) => <I {...p} d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />,
   chat: (p?: { size?: number; className?: string }) => <I {...p} d="M21 12a8 8 0 01-8 8H8l-5 3 1.5-4.5A8 8 0 1121 12z" />,
+  sun: (p?: { size?: number; className?: string }) => <I {...p} d="M12 17a5 5 0 100-10 5 5 0 000 10zm0-15v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4l1.4 1.4M4.9 19.1l1.4-1.4m11.4-11.4l1.4-1.4" />,
+  moon: (p?: { size?: number; className?: string }) => <I {...p} d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" />,
   flow: (p?: { size?: number; className?: string }) => <I {...p} d="M3 6h5v4H3zM16 14h5v4h-5zM8 8h4a2 2 0 012 2v4a2 2 0 002 2M3 16h5v4H3zM8 18h2" />,
 };
 

@@ -1,5 +1,6 @@
 // PATCH /api/projects/:id/db/sources/:sid { name?, schemaOnly? } -> { source } · DELETE -> { ok, removedSnapshots }
 import { NextResponse } from "next/server";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { resolveProject } from "@/lib/arkus/project";
 import { patchSource, removeSource } from "@/lib/arkus/dbsources";
@@ -15,6 +16,7 @@ async function own(id: string, sid: string) {
 }
 
 export async function PATCH(req: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id, sid } = await params;
   const o = await own(id, sid); if ("error" in o) return o.error;
   let body: { name?: string; schemaOnly?: boolean };
@@ -24,6 +26,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 }
 
 export async function DELETE(_: Request, { params }: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   const { id, sid } = await params;
   const o = await own(id, sid); if ("error" in o) return o.error;
   const r = await removeSource(sid);

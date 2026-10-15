@@ -1,5 +1,6 @@
 // Compatibility alias. GET ?env -> { source, snapshot } for that env (public shape) · POST -> same as POST db/sources.
 import { NextResponse } from "next/server";
+import { authErrorResponse, requireDeveloper } from "@/lib/auth";
 import { resolveProject } from "@/lib/arkus/project";
 import { listDbSources } from "@/lib/arkus/dbsources";
 import { POST as sourcesPost } from "../sources/route";
@@ -7,6 +8,7 @@ import { POST as sourcesPost } from "../sources/route";
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function POST(req: Request, ctx: Ctx) {
+  try { await requireDeveloper(); } catch (e) { const r = authErrorResponse(e); if (r) return r; throw e; }
   return sourcesPost(req, ctx);
 }
 
