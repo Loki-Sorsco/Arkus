@@ -36,7 +36,7 @@ function MapNode({ data }: NodeProps<Node<NodeData>>) {
   const file = n.file ? n.file.split("/").slice(-2).join("/") : n.type === "external" ? String(n.attrs?.host || "") : "";
   return (
     <div style={{ width: W, height: compact ? SLIM_H : RICH_H, ["--glow" as string]: glowColor, borderColor: on ? glowColor : "var(--border)" }}
-      className={cx("rounded-[7px] border bg-surface cursor-pointer hover:border-border-strong flex flex-col", compact ? "px-2.5 py-1.5 justify-center" : "px-3 py-2", state === "dim" && "opacity-[.18]", (state === "selected" || state === "blast-root") && "glow", (state === "lit" || state === "blast") && "glow-soft", red(state) && "bg-[var(--blast-bg)]")}>
+      className={cx("rounded-[7px] border bg-surface cursor-pointer hover:border-border-strong flex flex-col", compact ? "px-2.5 py-1.5 justify-center" : "px-3 py-2", state === "dim" && "opacity-[.32]", (state === "selected" || state === "blast-root") && "glow", (state === "lit" || state === "blast") && "glow-soft", red(state) && "bg-[var(--blast-bg)]")}>
       <Handle type="target" position={Position.Left} style={{ opacity: 0 }} />
       {compact ? (
         <div className="flex items-center gap-1.5 min-w-0">
@@ -111,9 +111,8 @@ export type MapProps = { graph: LoadedGraph; selection: string | null; onSelect:
 
 export function ArchitectureMap({ graph, selection, onSelect, onOpen, layer = "all", filter = "", density = "auto", blast = false }: MapProps) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
-  const [hover, setHover] = useState<string | null>(null);
+  const hover: string | null = null; // hover never re-lights the map (it made every card blink); only clicks do
   const look = useLook();
-  useEffect(() => { if (selection) setHover(null); }, [selection]);
   const toggle = useCallback((id: string) => setOpen((o) => ({ ...o, [id]: !o[id] })), []);
 
   const { nodes, edges } = useMemo(() => {
@@ -234,12 +233,12 @@ export function ArchitectureMap({ graph, selection, onSelect, onOpen, layer = "a
       return { id, source: a.source, target: a.target, type: "smoothstep", pathOptions: { borderRadius: 14 }, animated: a.lit, className: a.lit ? "lit" : undefined, style: { stroke: a.lit ? color : "var(--border-strong)", strokeWidth: a.lit ? 1.6 : 1, opacity: focus ? (a.lit ? 1 : 0.05) : q ? 0.12 : 0.4, strokeDasharray: a.lit ? "5 4" : a.conf < 0.9 ? "4 3" : undefined }, label: a.lit && label ? (a.count > 1 ? `${label} ·${a.count}` : label) : undefined, labelStyle: { fill: a.lit ? "var(--text-2)" : "var(--dim)", fontSize: 10, fontFamily: "var(--font-mono)" }, labelBgStyle: { fill: "var(--bg)", fillOpacity: 0.9 }, labelBgPadding: [3, 2] as [number, number] };
     });
     return { nodes: out, edges };
-  }, [graph, selection, hover, layer, filter, open, density, blast]); // litSel still drives folder expansion
+  }, [graph, selection, hover, layer, filter, open, density, blast]); // hover is constant; litSel drives folder expansion
 
   return (
     <div className="h-full w-full arkus-map">
       <ReactFlowProvider>
-        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08, maxZoom: 1 }} minZoom={0.12} maxZoom={1.6} onPaneClick={() => onSelect(null)} onNodeClick={(_, n) => { if (n.type === "item") onSelect(n.id); else if (n.type === "folder") toggle(n.id); }} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} colorMode={look.theme} style={{ background: "var(--bg)" }} onNodeMouseEnter={(_, n) => { if (n.type === "item" && !blast && !selection) setHover(n.id); }} onNodeMouseLeave={() => { if (!selection) setHover(null); }} onNodeDoubleClick={(_, n) => { if (n.type === "item") onOpen?.(n.id); }}>
+        <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.08, maxZoom: 1 }} minZoom={0.12} maxZoom={1.6} onPaneClick={() => onSelect(null)} onNodeClick={(_, n) => { if (n.type === "item") onSelect(n.id); else if (n.type === "folder") toggle(n.id); }} nodesDraggable={false} nodesConnectable={false} elementsSelectable={false} colorMode={look.theme} style={{ background: "var(--bg)" }} onNodeDoubleClick={(_, n) => { if (n.type === "item") onOpen?.(n.id); }}>
           <Background variant={BackgroundVariant.Dots} color="var(--grid)" gap={22} size={1.2} />
           <Controls showInteractive={false} position="bottom-right" />
           <MiniMap position="top-right" pannable zoomable nodeStrokeWidth={0} nodeBorderRadius={3} nodeColor={(n) => (n.type === "item" ? ({ screen: "#F5C451", endpoint: "#60A5FA", table: "#2DD4BF", external: "#A78BFA" } as Record<string, string>)[(n.data as NodeData).n.type] || "#8A8F99" : n.type === "folder" ? "#3A3F48" : "transparent")} maskColor={look.theme === "light" ? "rgba(246,247,249,.6)" : "rgba(10,10,11,.45)"} bgColor={look.theme === "light" ? "#FFFFFF" : "#111214"} style={{ width: 170, height: 115 }} />
