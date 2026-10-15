@@ -2,13 +2,23 @@
 // Small pieces every database tab shares: the sync action (POST sources/:id/sync + toast), the
 // "connect a database" and "schema-only" empty states (with the connect dialog), the drift fetch,
 // and the tab descriptor for a table.
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { useWorkspace } from "@/components/shell/workspace";
 import type { Tab } from "@/components/shell/tabs";
 import { EmptyState, Icon, Spinner, useToast } from "@/components/ui";
 import { cx, useApi } from "@/lib/ui";
 import { ConnectDbModal } from "@/components/screens/db-connect";
 import { dbBase, post, stageSummary, type DriftResult, type PublicSource, type SyncResp } from "@/components/screens/db-shared";
+
+// Every mounted schema view (table list, section, open table) owns its own useDbSchema() fetch; after a DDL
+// change the modals call notifySchemaChanged() so all of them reload before the UI navigates.
+const schemaListeners = new Set<() => void | Promise<void>>();
+export function useSchemaChanges(reload: () => void | Promise<void>) {
+  useEffect(() => { schemaListeners.add(reload); return () => { schemaListeners.delete(reload); }; }, [reload]);
+}
+export async function notifySchemaChanged() {
+  await Promise.all([...schemaListeners].map((l) => Promise.resolve().then(l).catch(() => undefined)));
+}
 
 export const tableTab = (name: string): Omit<Tab, "id"> => ({ kind: "table", key: `table:${name}`, label: name });
 export const tableName = (key: string | null | undefined) => (key?.startsWith("table:") ? key.slice(6) : null);

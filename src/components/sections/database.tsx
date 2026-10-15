@@ -11,7 +11,8 @@ import { QueryTab } from "@/components/tabs/query-tab";
 import { SchemaTab } from "@/components/tabs/schema-tab";
 import { HistoryTab } from "@/components/tabs/history-tab";
 import { DriftTab } from "@/components/tabs/drift-tab";
-import { useDbSync } from "@/components/tabs/db-common";
+import { useDbSync, useSchemaChanges } from "@/components/tabs/db-common";
+import { NewTableModal } from "@/components/screens/schema-modals";
 import { Chip, EmptyState, Icon, SearchInput, Spinner } from "@/components/ui";
 import { cx } from "@/lib/ui";
 import { Explainer } from "@/components/shell/explainer";
@@ -26,6 +27,7 @@ export function DatabaseSection() {
   const column = params.get("column") || "";
   const noDb = !schema.fromDb;
   const [connect, setConnect] = useState(false);
+  useSchemaChanges(schema.reload);
   // First visit: open the first table.
   // First visit, or a selected table that is not in this environment's schema (after a connect or env switch): open the first real table.
   useEffect(() => {
@@ -57,8 +59,11 @@ export function DatabaseSection() {
 
 function TableList({ view, sel, onConnect }: { view: string; sel: string | null; onConnect: () => void }) {
   const { go, env } = useWorkspace();
-  const { tables, source, schemaOnly, loading, reload } = useDbSchema();
+  const { tables, source, schemaOnly, loading, reload, engine } = useDbSchema();
+  useSchemaChanges(reload);
   const sync = useDbSync(source, reload);
+  const [newTable, setNewTable] = useState(false);
+  const canWrite = !!source && !schemaOnly;
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [more, setMore] = useState(false);
@@ -71,7 +76,7 @@ function TableList({ view, sel, onConnect }: { view: string; sel: string | null;
   return (
     <>
       <div className="px-2 pt-2 pb-1.5 flex-none"><SearchInput value={q} onChange={setQ} placeholder="Filter tables" /></div>
-      <PanelSection title="Tables" count={tables.length} open onToggle={() => {}} grow>
+      <PanelSection title="Tables" count={tables.length} open onToggle={() => {}} grow right={canWrite && <button className="btn-icon btn-xs w-6 dev-only" title="New table" aria-label="New table" onClick={() => setNewTable(true)}>{Icon.plus({ size: 12 })}</button>}>
         {loading && !tables.length && <div className="px-3 py-2"><Spinner /></div>}
         {!loading && !tables.length && <div className="px-3 py-2 text-[12px] text-dim prose">No tables yet. Connect a database or analyse the code.</div>}
         {list.map((t) => {
@@ -94,6 +99,7 @@ function TableList({ view, sel, onConnect }: { view: string; sel: string | null;
             <button className={cx("btn-xs btn-ghost", (view === "history" || view === "drift") && "text-text")} onClick={() => setMore((o) => !o)} title="More">⋯</button>
             {more && (
               <div className="absolute right-0 bottom-8 w-[200px] card py-1 shadow-[0_12px_32px_rgba(0,0,0,.55)] z-30 arise text-[12.5px]">
+                {canWrite && <div className="px-3 h-8 flex items-center gap-1.5 hover:bg-surface-3 cursor-pointer dev-only" onClick={() => { setMore(false); setNewTable(true); }}>{Icon.plus({ size: 12 })} New table</div>}
                 <div className="px-3 h-8 flex items-center hover:bg-surface-3 cursor-pointer" onClick={() => { setMore(false); go("database", { view: "history" }); }}>Schema history</div>
                 <div className="px-3 h-8 flex items-center hover:bg-surface-3 cursor-pointer" onClick={() => { setMore(false); go("database", { view: "drift" }); }}>Drift (code vs database)</div>
                 {source && <div className="px-3 h-8 flex items-center hover:bg-surface-3 cursor-pointer" onClick={() => { setMore(false); sync.sync(); }}>{sync.syncing ? <Spinner /> : "Sync schema"}</div>}
@@ -108,6 +114,7 @@ function TableList({ view, sel, onConnect }: { view: string; sel: string | null;
           {schemaOnly && <span title="schema only">{Icon.lock({ size: 11 })}</span>}
         </div>
       </div>
+      <NewTableModal open={newTable} onClose={() => setNewTable(false)} engine={engine} tables={tables} />
     </>
   );
 }
