@@ -42,7 +42,7 @@ const flashField = StateField.define<DecorationSet>({
 });
 
 
-function langExt(language: string): Extension[] {
+export function langExt(language: string): Extension[] {
   switch (language) {
     case "typescript": return [javascript({ typescript: true })];
     case "tsx": return [javascript({ typescript: true, jsx: true })];

@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { InspectorHeader, useWorkspace } from "@/components/shell/workspace";
 import { OpenInEditorLink } from "@/components/screens/code-editor";
+import { PagePreview } from "@/components/screens/page-preview";
 import { Chip, Confidence, Field, Icon, MethodBadge, Modal, Ref, Section, Spinner } from "@/components/ui";
 import { cx, useApi } from "@/lib/ui";
 import type { GNode } from "@/lib/arkus/types";
@@ -50,6 +51,9 @@ export function Inspector({ extra }: { extra?: React.ReactNode }) {
           </Section>
         )}
         {node.type === "column" && <ColumnDetail node={node} />}
+        {node.type === "screen" && (
+          <Section title="Preview"><PagePreview path={node.name} /></Section>
+        )}
         {node.type === "screen" && (
           <Section title={`Fields · ${fields.length}`}>
             {fields.length ? <div className="border border-border rounded-[6px] overflow-hidden bg-bg-deep/40">{fields.map((f, i) => <div key={i} className="flex items-center gap-2 px-2.5 h-7 text-[12.5px] border-b border-border/50 last:border-0"><span>{f.label}</span><span className="text-dim ml-auto">{f.uiType}{f.required ? " · required" : ""}</span></div>)}</div> : <div className="text-[12.5px] text-dim">Display page — no form fields.</div>}

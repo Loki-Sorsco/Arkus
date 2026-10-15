@@ -50,7 +50,8 @@ export async function clearGithubToken() {
   await prisma.setting.deleteMany({ where: { key: { in: await Promise.all([userKey(KEY), userKey(LOGIN_KEY)]) } } });
 }
 
-function authArgs(url: string, token: string | null): string[] {
+/** `-c http.<host>.extraheader=…` for github.com https remotes; nothing for other hosts or without a token. */
+export function authArgs(url: string, token: string | null): string[] {
   if (!token) return [];
   const host = /^https:\/\/([^/]+)\//i.exec(url)?.[1]?.toLowerCase();
   if (host !== "github.com") return [];
