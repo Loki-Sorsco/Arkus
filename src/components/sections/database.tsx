@@ -27,7 +27,12 @@ export function DatabaseSection() {
   const noDb = !schema.fromDb;
   const [connect, setConnect] = useState(false);
   // First visit: open the first table.
-  useEffect(() => { if (!view && schema.tables.length) go("database", { view: "table", sel: `table:${schema.tables[0].name}` }, { replace: true }); }, [view, schema.tables, go]);
+  // First visit, or a selected table that is not in this environment's schema (after a connect or env switch): open the first real table.
+  useEffect(() => {
+    if (schema.loading || !schema.tables.length) return;
+    const stale = view === "table" && !!sel && !schema.tables.some((t) => `table:${t.name}` === sel);
+    if (!view || stale) go("database", { view: "table", sel: `table:${schema.tables[0].name}` }, { replace: true });
+  }, [view, sel, schema.tables, schema.loading, go]);
   const table = view === "table" && sel ? schema.tables.find((t) => `table:${t.name}` === sel) : null;
   return (
     <div className="flex-1 min-h-0 flex">
