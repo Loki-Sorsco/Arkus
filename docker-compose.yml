@@ -3,8 +3,12 @@ services:
   arkus:
     build: .
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    # No host port: Dokploy's Traefik proxies to the container on 3000 (set in the Domains tab).
+    # For plain docker compose on your own machine, uncomment the two lines below.
+    # ports:
+    #   - "3000:3000"
+    expose:
+      - "3000"
     environment:
       ARKUS_MODE: cloud
       ARKUS_URL: ${ARKUS_URL}                      # public https URL, e.g. https://app.arkus.dev
