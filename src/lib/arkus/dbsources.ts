@@ -93,8 +93,8 @@ export async function upsertDbSource(input: { projectId: string; env: string; en
   const parsed = parseDbUrl(input.url, input.engine);   // throws on garbage urls
   dbConfig.engine = parsed.engine;
   const name = (input.name || "").trim().slice(0, 80) || parsed.database || parsed.file?.split(/[\\/]/).pop() || `${parsed.engine} ${env}`;
-  const test = await testConnection(dbConfig, baseDir);
   if (parsed.host) await assertPublicHost(parsed.host, "database host");
+  const test = await testConnection(dbConfig, baseDir);
   const { config } = buildConfig(parsed.engine, input.url, Boolean(input.schemaOnly), test.local);
 
   const existing = await prisma.source.findMany({ where: { projectId, kind: "db", env }, orderBy: { createdAt: "desc" } });
