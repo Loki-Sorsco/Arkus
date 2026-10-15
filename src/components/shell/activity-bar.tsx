@@ -10,9 +10,10 @@ import { useWorkspace, type Section } from "./workspace";
 
 const MAIN: { id: Section; label: string; icon: ReactNode; key: string }[] = [
   { id: "map", label: "Map", icon: Icon.map({ size: 20 }), key: "1" },
-  { id: "apis", label: "APIs", icon: Icon.api({ size: 20 }), key: "2" },
-  { id: "database", label: "Database", icon: Icon.db({ size: 20 }), key: "3" },
-  { id: "health", label: "Health", icon: Icon.activity({ size: 20 }), key: "4" },
+  { id: "frontend", label: "Frontend", icon: Icon.pages({ size: 20 }), key: "2" },
+  { id: "apis", label: "APIs", icon: Icon.api({ size: 20 }), key: "3" },
+  { id: "database", label: "Database", icon: Icon.db({ size: 20 }), key: "4" },
+  { id: "health", label: "Health", icon: Icon.activity({ size: 20 }), key: "5" },
 ];
 const MORE: { id: Section; label: string; icon: ReactNode; hint?: string }[] = [
   { id: "flows", label: "Flows", icon: Icon.flow({ size: 14 }), hint: "user journeys" },

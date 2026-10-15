@@ -17,8 +17,8 @@ import { StatusBar } from "./status-bar";
 import { CodeDrawer } from "./code-drawer";
 
 export type Env = "dev" | "preview" | "prod";
-export type Section = "map" | "apis" | "database" | "health" | "flows" | "plans" | "activity" | "connect" | "settings";
-export const SECTIONS: Section[] = ["map", "apis", "database", "health", "flows", "plans", "activity", "connect", "settings"];
+export type Section = "map" | "frontend" | "apis" | "database" | "health" | "flows" | "plans" | "activity" | "connect" | "settings";
+export const SECTIONS: Section[] = ["map", "frontend", "apis", "database", "health", "flows", "plans", "activity", "connect", "settings"];
 export type ProjectDetail = { id: string; name: string; slug: string; mode: string; status: string; rootPath: string | null; repoUrl: string | null; stack: { summary?: string; frameworks?: string[]; orms?: string[]; dbEngineHint?: string }; sources: { id: string; kind: string; env: string; name: string; status: string; config: Record<string, unknown>; lastError?: string | null; testedAt?: string | null }[]; snapshots: { id: string; kind: string; version: string; status: string; stats: Record<string, unknown>; createdAt: string }[]; plans: { no: number; title: string; pipeline: string; risk: string }[]; draftPlans: number; blueprint: { version: number } | null; ai?: boolean };
 export type Draft = { id: string; label: string; intent: PlanIntent };
 export type RightPane = "inspect" | "ask" | "closed" | null;
@@ -103,7 +103,8 @@ export function WorkspaceProvider({ slug, initial, children }: { slug: string; i
     if (type === "table") go("database", { view: "table", sel: key });
     else if (type === "column") { const [t, c] = key.slice(7).split("."); go("database", { view: "table", sel: `table:${t}`, column: c }); }
     else if (type === "endpoint") go("apis", { sel: key });
-    else if (type === "screen" || type === "external") { go("map", { sel: key }); setSelection(key); setRightPane("inspect"); }
+    else if (type === "screen") go("frontend", { sel: key });
+    else if (type === "external") { go("map", { sel: key }); setSelection(key); setRightPane("inspect"); }
     else { const n = g.data?.nodes.find((x) => x.key === key); if (n?.file) openFile(n.file, n.lineStart); else { setSelection(key); setRightPane("inspect"); } }
   }, [go, g.data, openFile, setRightPane]);
 
@@ -114,7 +115,7 @@ export function WorkspaceProvider({ slug, initial, children }: { slug: string; i
       case "table": go("database", { view: "table", sel: t.key, column: t.params?.column, filters: t.params?.filters }); break;
       case "endpoint": go("apis", { sel: t.key }); break;
       case "request": go("apis", { sel: t.key?.startsWith("ep:") ? t.key.slice(3) : undefined, view: "test" }); break;
-      case "page": go("map", { sel: t.key }); if (t.key) { setSelection(t.key); setRightPane("inspect"); } break;
+      case "page": go("frontend", { sel: t.key }); break;
       case "file": if (t.key) openFile(t.key, t.line); break;
       case "schema": go("database", { view: "diagram", sel: t.key }); break;
       case "query": go("database", { view: "query", id: t.key, sql: t.params?.sql }); break;
@@ -133,6 +134,7 @@ export function WorkspaceProvider({ slug, initial, children }: { slug: string; i
     const sel = params.get("sel") || undefined;
     const t = (x: Tab): Tab => x;
     if (section === "apis" && sel) return t({ id: `endpoint:${sel}`, kind: "endpoint", key: sel, label: sel });
+    if (section === "frontend" && sel) return t({ id: `page:${sel}`, kind: "page", key: sel, label: sel });
     if (section === "database") {
       const view = params.get("view") || (sel ? "table" : "");
       if (view === "table" && sel) return t({ id: `table:${sel}`, kind: "table", key: sel, label: sel.replace(/^table:/, ""), params: { column: params.get("column") || "", filters: params.get("filters") || "" } });
@@ -172,7 +174,7 @@ export function WorkspaceProvider({ slug, initial, children }: { slug: string; i
       const k = e.key.toLowerCase();
       if (k === "k" || k === "p") { e.preventDefault(); setPaletteOpen((o) => !o); }
       else if (k === "l") { e.preventDefault(); setRightPane((p) => (p === "ask" ? "closed" : "ask")); }
-      else if (k === "1") { e.preventDefault(); go("map"); } else if (k === "2") { e.preventDefault(); go("apis"); } else if (k === "3") { e.preventDefault(); go("database"); } else if (k === "4") { e.preventDefault(); go("health"); }
+      else if (k === "1") { e.preventDefault(); go("map"); } else if (k === "2") { e.preventDefault(); go("frontend"); } else if (k === "3") { e.preventDefault(); go("apis"); } else if (k === "4") { e.preventDefault(); go("database"); } else if (k === "5") { e.preventDefault(); go("health"); }
     };
     window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h);
   }, [go, setRightPane]);

@@ -9,6 +9,7 @@ import { MapSection } from "@/components/sections/map";
 import { ApisSection } from "@/components/sections/apis";
 import { DatabaseSection } from "@/components/sections/database";
 import { HealthSection } from "@/components/sections/health";
+import { FrontendSection } from "@/components/sections/frontend";
 import { FlowsSection, PlansSection, SimpleSection } from "@/components/sections/misc";
 
 export default function SectionRoute() {
@@ -25,7 +26,7 @@ export default function SectionRoute() {
     const sel = sp.get("sel");
     switch (raw) {
       case "overview": router.replace(`${base}/map${sel ? `?sel=${encodeURIComponent(sel)}` : ""}`); break;
-      case "pages": router.replace(`${base}/map${sel ? `?sel=${encodeURIComponent(sel)}` : ""}`); break;
+      case "pages": router.replace(`${base}/frontend${sel ? `?sel=${encodeURIComponent(sel)}` : ""}`); break;
       case "requests": router.replace(`${base}/apis?view=test`); break;
       case "files": { const p = sp.get("path"); router.replace(`${base}/map`); if (p) openFile(p, Number(sp.get("line")) || undefined); break; }
       case "ask": router.replace(`${base}/map`); openAsk(sp.get("q") || undefined); break;
@@ -37,6 +38,7 @@ export default function SectionRoute() {
     case "apis": return <ApisSection />;
     case "database": return <DatabaseSection />;
     case "health": return <HealthSection />;
+    case "frontend": return <FrontendSection />;
     case "flows": return <FlowsSection />;
     case "plans": return <PlansSection />;
     case "activity": case "connect": case "settings": return <SimpleSection kind={section} />;
