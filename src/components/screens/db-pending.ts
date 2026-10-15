@@ -22,7 +22,7 @@ export type Staged = { mutation: Mutation; keys: string[]; label: string };
 export const isBoolType = (c?: DbColumn) => !!c && /bool/i.test(c.type || "");
 export const isNumType = (c?: DbColumn) => !!c && /\b(?:big|small|tiny|medium)?int(?:eger)?\d*\b|serial|numeric|decimal|float|double|real|number|money/i.test(c.type || "");
 /** "Will the database fill this key itself?" — serial / identity / uuid-ish types or any default. */
-export const isAutoKey = (c: DbColumn) => !!c.default || /serial|auto|identity|cuid|uuid/i.test(c.type || "");
+export const isAutoKey = (c: DbColumn) => !!c.default || /serial|auto|identity|cuid|uuid/i.test(c.type || "") || /identity/i.test(c.default || "");
 export const rawText = (v: unknown) => (v == null ? "" : typeof v === "object" ? JSON.stringify(v) : String(v));
 export const same = (a: unknown, b: unknown) => (a == null && b == null) || (a != null && b != null && rawText(a) === rawText(b));
 /** Columns a new row can take values for: not secret, and not an auto-generated key. */

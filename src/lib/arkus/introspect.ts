@@ -38,7 +38,7 @@ async function introspectPostgres(conn: DbConn, t0: number): Promise<IntrospectR
   const views = await conn.query(`SELECT count(*)::int AS n FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE c.relkind IN ('v','m') AND ${SCHEMAS}`);
   const enums = await conn.query("SELECT t.typname AS name, string_agg(e.enumlabel, '|' ORDER BY e.enumsortorder) AS labels FROM pg_type t JOIN pg_enum e ON e.enumtypid = t.oid GROUP BY t.typname");
   const enumMap = new Map(enums.rows.map(r => [String(r.name), String(r.labels)]));
-  const cols = await conn.query("SELECT table_schema AS schema, table_name AS tbl, column_name AS col, data_type AS dt, udt_name AS udt, is_nullable AS nullable, column_default AS dflt, character_maximum_length AS len FROM information_schema.columns WHERE table_schema NOT LIKE 'pg\\_%' AND table_schema <> 'information_schema' ORDER BY table_schema, table_name, ordinal_position");
+  const cols = await conn.query("SELECT table_schema AS schema, table_name AS tbl, column_name AS col, data_type AS dt, udt_name AS udt, is_nullable AS nullable, column_default AS dflt, is_identity AS ident, identity_generation AS identgen, character_maximum_length AS len FROM information_schema.columns WHERE table_schema NOT LIKE 'pg\\_%' AND table_schema <> 'information_schema' ORDER BY table_schema, table_name, ordinal_position");
   const keys = await conn.query("SELECT tc.table_schema AS schema, tc.table_name AS tbl, tc.constraint_type AS kind, tc.constraint_name AS cname, kcu.column_name AS col FROM information_schema.table_constraints tc JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tc.constraint_name AND kcu.constraint_schema = tc.constraint_schema AND kcu.table_name = tc.table_name WHERE tc.constraint_type IN ('PRIMARY KEY','UNIQUE') ORDER BY tc.constraint_name, kcu.ordinal_position");
   const fks = await conn.query("SELECT kcu.table_schema AS schema, kcu.table_name AS tbl, kcu.column_name AS col, kcu2.table_schema AS rschema, kcu2.table_name AS rtbl, kcu2.column_name AS rcol FROM information_schema.referential_constraints rc JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = rc.constraint_name AND kcu.constraint_schema = rc.constraint_schema JOIN information_schema.key_column_usage kcu2 ON kcu2.constraint_name = rc.unique_constraint_name AND kcu2.constraint_schema = rc.unique_constraint_schema AND kcu2.ordinal_position = kcu.position_in_unique_constraint");
   const idx = await conn.query("SELECT schemaname AS schema, tablename AS tbl, indexname AS name, indexdef AS def FROM pg_indexes WHERE schemaname NOT LIKE 'pg\\_%' AND schemaname <> 'information_schema'");
@@ -55,7 +55,9 @@ async function introspectPostgres(conn: DbConn, t0: number): Promise<IntrospectR
     if (type.startsWith("_")) type = type.slice(1) + "[]";
     if (enumMap.has(type)) type = `enum(${enumMap.get(type)})`;
     else if (r.len) type += `(${r.len})`;
-    t.columns.push({ name: String(r.col), type, nullable: r.nullable === "YES", default: str(r.dflt) });
+    // Identity columns have no column_default but Postgres fills them in; record that so inserts leave them out.
+    const dflt = str(r.dflt) || (String(r.ident) === "YES" ? `identity (generated ${String(r.identgen || "always").toLowerCase()})` : undefined);
+    t.columns.push({ name: String(r.col), type, nullable: r.nullable === "YES", default: dflt });
   }
   const uniqueGroups = new Map<string, number>();
   for (const r of keys.rows) uniqueGroups.set(String(r.cname), (uniqueGroups.get(String(r.cname)) ?? 0) + 1);
