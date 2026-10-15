@@ -40,8 +40,8 @@ export function HealthLive({ onMeta }: { onMeta?: (s: string | undefined) => voi
   }, [project.slug, env]);
   useEffect(() => { onMeta?.(data?.totals.lastAt ? `last check ${timeAgo(data.totals.lastAt)}` : undefined); }, [data, onMeta]);
 
-  const saveBase = useCallback(async () => {
-    const next = base.trim().replace(/\/+$/, "");
+  const saveBase = useCallback(async (value?: string) => {
+    const next = (value ?? base).trim().replace(/\/+$/, "");
     if (!envInfo || next === envInfo.baseUrl || saving) return;
     setSaving(true);
     try { const r = await api<{ value: EnvView }>(`/api/projects/${project.slug}/http/env`, { method: "PUT", json: { env, value: { ...envInfo, baseUrl: next } } }); setEnvInfo(r.value); setBase(r.value.baseUrl); setData((d) => (d ? { ...d, baseUrl: r.value.baseUrl } : d)); }
@@ -74,6 +74,9 @@ export function HealthLive({ onMeta }: { onMeta?: (s: string | undefined) => voi
   const t = data?.totals;
   const allDown = !!t && t.checked > 0 && t.unreachable === t.checked;
   const firstError = eps.find((e) => e.lastError)?.lastError;
+  let basePath = "";
+  try { basePath = baseUrl ? new URL(baseUrl).pathname.replace(/\/+$/, "") : ""; } catch { basePath = ""; }
+  const all404 = eps.length > 0 && eps.every((e) => e.lastStatus === 404);
   const indexed = !!graph?.snapshotId;
 
   const baseInput = (
@@ -102,6 +105,15 @@ export function HealthLive({ onMeta }: { onMeta?: (s: string | undefined) => voi
         <div className="flex-1" />
         <Tabs size="sm" value={win} onChange={setWin} items={[{ id: "24h", label: "24h" }, { id: "7d", label: "7d" }]} />
       </div>
+        {basePath && basePath !== "/" && (
+          <div className="mb-3 rounded-[7px] border border-amber/40 bg-amber/10 px-3 py-2 text-[12.5px] text-amber flex items-center gap-3 prose">
+            <span className="flex-1">The base URL includes a path (<span className="font-mono">{basePath}</span>). Arkus adds each API's own path after it, so use the address where the app starts.</span>
+            <button className="btn-ghost btn-xs whitespace-nowrap" onClick={() => { try { const u = new URL(baseUrl); void saveBase(u.origin); } catch { /* ignore */ } }}>Use {(() => { try { return new URL(baseUrl).origin; } catch { return "origin"; } })()}</button>
+          </div>
+        )}
+        {all404 && (
+          <div className="mb-3 rounded-[7px] border border-border bg-surface-2 px-3 py-2 text-[12.5px] text-text-2 prose">Every endpoint answered <span className="font-mono">404 Not Found</span> at this address, which means the server exists but these paths are not on it. Check the base URL points at this app, not another one, and that it is the root address.</div>
+        )}
 
       {live.loading && !data ? <div className="flex items-center gap-2 text-[12.5px] text-dim"><Spinner /> Loading</div>
         : live.error && !data ? <EmptyState compact title="Could not load the live results" hint={live.error} action={<button className="btn-subtle btn-xs" onClick={() => void live.reload()}>Try again</button>} />
@@ -132,7 +144,7 @@ export function HealthLive({ onMeta }: { onMeta?: (s: string | undefined) => voi
                   {eps.map((e) => (
                     <tr key={e.key} onClick={() => setSelected(e.key)} className={cx("cursor-pointer", current?.key === e.key && "bg-surface-2")}>
                       <td><MethodBadge method={e.method} /></td>
-                      <td className="font-mono text-[12px] truncate max-w-[260px]" title={e.path}>{e.path}</td>
+                      <td className="max-w-[300px]"><div className="font-mono text-[12px] truncate" title={e.path}>{e.path}</div><div className="text-[10.5px] text-dim truncate" title={e.lastUrl}>{e.lastUrl.replace(/^https?:\/\//, "")}</div>{e.lastError && e.state !== "ok" && <div className="text-[10.5px] text-muted truncate prose" title={e.lastError}>{e.lastError}</div>}</td>
                       <td className="text-[12px]"><StateLabel tone={STATE[e.state].tone}>{STATE[e.state].label}</StateLabel></td>
                       <td className="text-right tabular-nums text-[12px] text-text-2">{e.lastStatus || "—"}</td>
                       <td className="text-right tabular-nums text-[12px] text-text-2">{e.lastStatus ? fmtMs(e.lastMs) : "—"}</td>

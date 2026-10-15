@@ -10,7 +10,7 @@ export type ProbeState = "ok" | "slow" | "failing" | "unreachable";
 export interface EndpointSummary {
   key: string; method: string; path: string;
   state: ProbeState;
-  lastStatus: number; lastMs: number; lastAt: string; lastError: string | null;
+  lastStatus: number; lastMs: number; lastAt: string; lastError: string | null; lastUrl: string;
   p50: number; p95: number; failures: number; total: number; uptime: number;
   trend: number[]; // last 30 ms values, oldest first (0 for failed probes)
 }
@@ -54,7 +54,9 @@ export async function runProbes({ projectId, env, graph, baseUrl, keys, concurre
       const m = method === "HEAD" ? "HEAD" : "GET";
       const url = resolveUrl(fillPath(path), base);
       const r = await sendRequest({ method: m, url, headers, timeoutMs });
-      results[i] = { endpointKey: n.key, method, url, status: r.status, ms: r.ms, ok: r.status > 0 && isOkStatus(r.status), error: r.error ? r.error.slice(0, 300) : null, at };
+      const ok = r.status > 0 && isOkStatus(r.status);
+      const excerpt = !ok && r.status > 0 ? r.body.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " ").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160) : "";
+      results[i] = { endpointKey: n.key, method, url, status: r.status, ms: r.ms, ok, error: r.error ? r.error.slice(0, 300) : excerpt ? `Response: ${excerpt}` : null, at };
     }
   };
   await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, targets.length || 1)) }, worker));
@@ -99,7 +101,7 @@ export function summarize(rows: ProbeRow[], graph?: Graph): EndpointSummary[] {
     const state: ProbeState = last.status === 0 ? "unreachable" : !last.ok ? "failing" : p95 > SLOW_MS ? "slow" : "ok";
     const node = nodes.get(key);
     const { method, path } = node ? epAttrs(node) : { method: last.method, path: key.replace(/^endpoint:[A-Z]+ /, "") };
-    out.push({ key, method, path, state, lastStatus: last.status, lastMs: last.ms, lastAt: last.at.toISOString(), lastError: last.error, p50: percentile(okMs, 50), p95, failures, total: list.length, uptime: Math.round(((list.length - failures) / list.length) * 100), trend: list.slice(-TREND).map((r) => (r.status > 0 ? r.ms : 0)) });
+    out.push({ key, method, path, state, lastStatus: last.status, lastMs: last.ms, lastAt: last.at.toISOString(), lastError: last.error, lastUrl: last.url, p50: percentile(okMs, 50), p95, failures, total: list.length, uptime: Math.round(((list.length - failures) / list.length) * 100), trend: list.slice(-TREND).map((r) => (r.status > 0 ? r.ms : 0)) });
   }
   const rank: Record<ProbeState, number> = { unreachable: 0, failing: 1, slow: 2, ok: 3 };
   return out.sort((a, b) => rank[a.state] - rank[b.state] || b.p95 - a.p95 || a.path.localeCompare(b.path));
