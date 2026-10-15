@@ -36,7 +36,7 @@ export function ConnectDbModal({ open, onClose, env, existing, onConnected }: { 
     if (!open) return;
     setEngine((existing?.engine as Engine) || (me?.cloud ? "postgres" : (project.stack?.dbEngineHint as Engine) || "postgres"));
     setSchemaOnly(!!existing?.schemaOnly); setUrl(""); setTest(null); setBusy(null); setRoleOpen(false);
-  }, [open, existing, project.stack?.dbEngineHint]);
+  }, [open, existing, project.stack?.dbEngineHint, me?.cloud]);
 
   const runTest = async () => {
     if (!url.trim()) return;
