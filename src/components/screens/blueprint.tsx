@@ -72,7 +72,7 @@ export function BlueprintView({ project, data, reveal, engine = "sqlite", onUpda
             {busy && <span className="flex items-center gap-1.5"><Spinner /> {busy === "edit" ? "saving" : busy === "refine" ? "refining" : "flipping"}</span>}
           </div>
         </div>
-        {!data.aiUsed && <Chip tone="muted" title="Add a Groq key under Settings → AI and regenerate for an AI-designed blueprint">AI offline</Chip>}
+        {!data.aiUsed && <Chip tone="muted" title="Turn on AI under Settings and regenerate for an AI-designed blueprint">AI offline</Chip>}
         <div className="relative">
           <button className="btn-ghost btn-sm" onClick={() => setExportOpen((o) => !o)}>Export <span className="rotate-90 inline-flex">{Icon.chevron({ size: 12 })}</span></button>
           {exportOpen && (

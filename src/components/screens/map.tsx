@@ -192,7 +192,7 @@ export function ArchitectureMap({ graph, selection, onSelect, onOpen, layer = "a
       out.push({ id: `lane:${lane}`, type: "lane", position: { x, y }, data: { label: LANE_LABEL[lane], lane, count } as LaneData, selectable: false, draggable: false });
       y += LANE_H + 8;
       const push = (n: GNode) => {
-        const rich = density === "rich" || (density === "auto" && (n.key === selection || litSel.has(n.key)));
+        const rich = density === "rich";
         rep.set(n.key, n.key);
         out.push({ id: n.key, type: "item", position: { x, y }, data: { n, state: nodeState(n), compact: !rich, stats: statsOf(n), onSelect: (k: string) => onSelect(k) } as NodeData, draggable: false });
         y += (rich ? RICH_H : SLIM_H) + GAP;
@@ -231,7 +231,7 @@ export function ArchitectureMap({ graph, selection, onSelect, onOpen, layer = "a
       return { id, source: a.source, target: a.target, type: "smoothstep", pathOptions: { borderRadius: 14 }, animated: a.lit, className: a.lit ? "lit" : undefined, style: { stroke: a.lit ? color : "var(--border-strong)", strokeWidth: a.lit ? 1.6 : 1, opacity: focus ? (a.lit ? 1 : 0.05) : q ? 0.12 : 0.4, strokeDasharray: a.lit ? "5 4" : a.conf < 0.9 ? "4 3" : undefined }, label: a.lit && label ? (a.count > 1 ? `${label} ·${a.count}` : label) : undefined, labelStyle: { fill: a.lit ? "var(--text-2)" : "var(--dim)", fontSize: 10, fontFamily: "var(--font-mono)" }, labelBgStyle: { fill: "var(--bg)", fillOpacity: 0.9 }, labelBgPadding: [3, 2] as [number, number] };
     });
     return { nodes: out, edges };
-  }, [graph, selection, hover, onSelect, layer, filter, open, toggle, density, blast]);
+  }, [graph, selection, hover, onSelect, layer, filter, open, toggle, density, blast]); // litSel still drives folder expansion
 
   return (
     <div className="h-full w-full arkus-map">

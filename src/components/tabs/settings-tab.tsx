@@ -1,10 +1,10 @@
 "use client";
-// Settings tab: project name and facts, AI status (Groq key), exports, danger zone; MCP (coming) and members.
+// Settings tab: project name and facts, AI (included with Arkus or your own key), exports, danger zone; MCP (coming) and members.
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { TabToolbar, useWorkspace } from "@/components/shell/workspace";
 import { Chip, CopyButton, Dot, Field, Panel, Spinner, useToast } from "@/components/ui";
-import { api, useApi } from "@/lib/ui";
+import { api, cx, useApi } from "@/lib/ui";
 
 export function SettingsTab() {
   const { project, reloadProject } = useWorkspace();
@@ -53,33 +53,92 @@ export function SettingsTab() {
   );
 }
 
-/** Groq key: verified with Groq, stored encrypted in Arkus's own DB, live immediately. Falls back to GROQ_API_KEY in .env. */
+type ProviderRow = { id: string; label: string; model: string; fastModel: string; keyHint: string; getKeyUrl: string | null; needsBaseUrl: boolean; keyOptional: boolean; baseUrl: string };
+type AiInfo = {
+  configured: boolean; mode: "included" | "byok" | "off"; provider: string | null; model: string | null; includedAvailable: boolean; source: "included" | "byok" | null;
+  byok: { provider: string | null; model: string | null; baseUrl: string | null; keyMasked: string | null } | null;
+  includedModel: string | null; includedProvider: string | null; providers: ProviderRow[];
+};
+type Mode = AiInfo["mode"];
+
+/** Three ways to run AI: included with Arkus (server key), the user's own key (verified, stored encrypted), or off. */
 function AiPanel({ onChange }: { onChange: () => Promise<unknown> | void }) {
-  const info = useApi<{ configured: boolean; source: "settings" | "env" | null }>("/api/settings/ai");
+  const info = useApi<AiInfo>("/api/settings/ai");
   const { toast } = useToast();
+  const [choice, setChoice] = useState<Mode | null>(null);
+  const [provider, setProvider] = useState("groq");
+  const [model, setModel] = useState("");
   const [key, setKey] = useState("");
+  const [baseUrl, setBaseUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const on = !!info.data?.configured;
-  const save = async () => {
-    setBusy(true); setErr(null);
-    try { await api("/api/settings/ai", { json: { key } }); setKey(""); await info.reload(true); await onChange(); toast({ title: "Key saved", detail: "Ask, English to SQL, writeups and blueprints now use your Groq key.", kind: "ok" }); }
-    catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
+  const [test, setTest] = useState<{ ok: boolean; ms: number; model: string | null; error?: string } | null>(null);
+  const d = info.data;
+  const mode: Mode = choice ?? d?.mode ?? "included";
+  const prov = d?.providers.find((p) => p.id === provider) ?? null;
+  // Prefill the form from the saved key the first time the data arrives.
+  useEffect(() => {
+    if (!d) return;
+    if (d.byok?.provider) { setProvider(d.byok.provider); setModel(d.byok.model || ""); setBaseUrl(d.byok.baseUrl || ""); }
+  }, [d]);
+  const pickProvider = (id: string) => { const p = d?.providers.find((x) => x.id === id); setProvider(id); setModel(p?.model || ""); setBaseUrl(""); setKey(""); setErr(null); };
+  const post = async (body: Record<string, unknown>, done?: string) => {
+    setBusy(true); setErr(null); setTest(null);
+    try { await api("/api/settings/ai", { json: body }); await info.reload(true); await onChange(); if (done) toast({ title: done, kind: "ok" }); return true; }
+    catch (e) { setErr((e as Error).message); return false; } finally { setBusy(false); }
   };
-  const forget = async () => { setBusy(true); try { await api("/api/settings/ai", { method: "DELETE" }); await info.reload(true); await onChange(); } finally { setBusy(false); } };
+  const choose = async (m: Mode) => {
+    if (busy || (m === "included" && !d?.includedAvailable)) return;
+    setChoice(m); setErr(null);
+    if (m === "included") await post({ mode: "included" }, "AI is on, included with Arkus");
+    if (m === "off") await post({ mode: "off" }, "AI is off");
+  };
+  const save = async () => {
+    const ok = await post({ mode: "byok", provider, key, model, baseUrl: prov?.needsBaseUrl ? baseUrl : undefined }, "Key saved, AI is on");
+    if (ok) { setKey(""); setChoice(null); }
+  };
+  const runTest = async () => {
+    setBusy(true); setTest(null);
+    try { setTest(await api("/api/settings/ai", { json: { test: true } })); } catch (e) { setTest({ ok: false, ms: 0, model: null, error: (e as Error).message }); } finally { setBusy(false); }
+  };
+  const label = (id: string | null) => d?.providers.find((p) => p.id === id)?.label || id || "";
+  const statusLine = !d ? "Loading…" : !d.configured
+    ? d.mode === "off" ? "AI is off" : "AI is off · nothing configured yet"
+    : `AI is on · ${d.source === "included" ? "Included" : `your ${label(d.provider)} key`} · ${d.model}`;
+  const card = (m: Mode, title: string, body: string, disabled?: boolean, note?: string) => (
+    <button type="button" disabled={disabled || busy} onClick={() => choose(m)} className={cx("text-left rounded-[7px] border px-3 py-2.5 transition flex gap-2.5 items-start disabled:opacity-60 disabled:cursor-not-allowed", mode === m ? "border-accent bg-accent/5" : "border-border hover:border-border-strong bg-surface-2/40")}>
+      <span className={cx("mt-[3px] w-3.5 h-3.5 rounded-full border flex-none flex items-center justify-center", mode === m ? "border-accent" : "border-border-strong")}>{mode === m && <span className="w-1.5 h-1.5 rounded-full bg-accent" />}</span>
+      <span className="min-w-0"><span className="block text-[13px] text-text">{title}</span><span className="block text-[12px] text-muted leading-relaxed">{body}</span>{note && <span className="block text-[12px] text-amber mt-0.5">{note}</span>}</span>
+    </button>
+  );
   return (
-    <Panel title="AI" right={on ? <Chip tone="green">on</Chip> : <Chip tone="muted">off</Chip>}>
+    <Panel title="AI" right={d?.configured ? <Chip tone="green">on</Chip> : <Chip tone="muted">off</Chip>}>
       <div className="flex flex-col gap-3 text-[13px] text-muted leading-relaxed">
-        <p>Everything in Arkus works without AI: import, map, pages, APIs, database, SQL you write, plans. A Groq key (free tier) switches on the extras: Ask in plain English, English to SQL, flow names, writeups and AI blueprints. Source text is secret-scrubbed before anything is sent.</p>
-        {on && (
-          <div className="flex items-center gap-2 text-text-2 min-h-[28px]"><Dot color="green" />AI is on · {info.data?.source === "env" ? <>using the key from <span className="font-mono">.env</span> on this machine</> : "using your saved key"}<span className="text-dim">· never shown or sent to the browser</span>{info.data?.source === "settings" && <button className="btn-subtle btn-xs ml-auto" disabled={busy} onClick={forget}>Forget key</button>}</div>
-        )}
-        <Field label={on ? "Use a different Groq key" : "Groq API key"} right={<a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="link">Get a free key</a>} hint={err ? <span className="text-red-soft">{err}</span> : on ? "Your key replaces the current one for every AI feature. Checked with Groq, stored encrypted on this machine." : "Checked with Groq, then stored encrypted on this machine. No restart needed."}>
-          <div className="flex gap-2">
-            <input className="input font-mono" type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder="gsk_…" autoComplete="off" spellCheck={false} onKeyDown={(e) => e.key === "Enter" && key.trim() && save()} />
-            <button className={on ? "btn-ghost flex-none" : "btn-primary flex-none"} disabled={!key.trim() || busy} onClick={save}>{busy ? <Spinner /> : on ? "Use this key" : "Turn on AI"}</button>
+        <p>Everything in Arkus works without AI: import, map, pages, APIs, database, SQL you write, plans. AI adds the extras: Ask in plain English, English to SQL, flow names, writeups and AI blueprints. Source text is secret-scrubbed before anything is sent.</p>
+        <div className="flex items-center gap-2 text-text-2 min-h-[28px]">
+          <Dot color={d?.configured ? "green" : "muted"} /><span className="truncate">{statusLine}</span>
+          {d?.configured && <button className="btn-subtle btn-xs ml-auto flex-none" disabled={busy} onClick={runTest}>{busy && test === null ? <Spinner /> : "Test"}</button>}
+        </div>
+        {test && <div className={cx("text-[12.5px] -mt-1", test.ok ? "text-green" : "text-red-soft")}>{test.ok ? `Answered in ${test.ms} ms (${test.model})` : `Failed${test.ms ? ` after ${test.ms} ms` : ""}: ${test.error}`}</div>}
+        <div className="grid gap-2">
+          {card("included", "Included with Arkus", "Uses Arkus's AI. Nothing to set up.", !d?.includedAvailable, !d ? undefined : d.includedAvailable ? undefined : "Not available on this Arkus: the server has no included key. Use your own key below.")}
+          {card("byok", "Use my own key", "Groq, OpenAI, Anthropic, Google Gemini or any OpenAI-compatible endpoint (OpenRouter, Ollama). Checked with the provider, then stored encrypted.")}
+          {card("off", "Off", "Everything still works; you just write SQL and read the structure yourself.")}
+        </div>
+        {mode === "byok" && d && (
+          <div className="flex flex-col gap-3 border border-border rounded-[7px] p-3 bg-surface-2/30">
+            <Field label="Provider"><select className="select" value={provider} onChange={(e) => pickProvider(e.target.value)}>{d.providers.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></Field>
+            {prov?.needsBaseUrl && <Field label="Base URL" hint="The OpenAI-compatible root, ending in /v1."><input className="input font-mono" value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} placeholder="https://openrouter.ai/api/v1 or http://localhost:11434/v1" spellCheck={false} /></Field>}
+            <Field label="Model" hint={prov?.model ? `Default: ${prov.model}. Change it if you prefer another model from this provider.` : "The exact model name your endpoint serves."}><input className="input font-mono" value={model} onChange={(e) => setModel(e.target.value)} placeholder={prov?.model || "llama3.1"} spellCheck={false} /></Field>
+            <Field label={d.byok?.keyMasked && d.byok.provider === provider ? `API key (saved: ${d.byok.keyMasked})` : "API key"} right={prov?.getKeyUrl ? <a href={prov.getKeyUrl} target="_blank" rel="noreferrer" className="link">Get a key</a> : undefined} hint={err ? <span className="text-red-soft">{err}</span> : d.byok?.keyMasked && d.byok.provider === provider ? "Leave empty to keep the saved key and just change the model. Never shown or sent to the browser." : `Looks like ${prov?.keyHint || "…"}. Checked with ${prov?.label || "the provider"}, then stored encrypted on this machine. No restart needed.`}>
+              <div className="flex gap-2">
+                <input className="input font-mono" type="password" value={key} onChange={(e) => setKey(e.target.value)} placeholder={prov?.keyHint || ""} autoComplete="off" spellCheck={false} onKeyDown={(e) => e.key === "Enter" && save()} />
+                <button className="btn-primary flex-none" disabled={busy || (!key.trim() && !prov?.keyOptional && !(d.byok?.keyMasked && d.byok.provider === provider))} onClick={save}>{busy ? <Spinner /> : "Save"}</button>
+              </div>
+            </Field>
           </div>
-        </Field>
+        )}
+        {err && mode !== "byok" && <div className="text-[12.5px] text-red-soft">{err}</div>}
       </div>
     </Panel>
   );

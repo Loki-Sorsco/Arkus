@@ -26,7 +26,7 @@ export function StatusBar() {
       <div className="flex-1" />
       {editorStatus && <span className={item}>Ln {editorStatus.line}, Col {editorStatus.col}</span>}
       {editorStatus && <span className={item}>{editorStatus.language}</span>}
-      <button className={cx(item, click)} onClick={() => project.ai === false ? go("settings") : setRightPane("ask")} title={project.ai === false ? "AI is off. Add a Groq key in Settings." : "AI is on"}>{Icon.spark({ size: 11 })} {project.ai === false ? "AI off" : "AI"}</button>
+      <button className={cx(item, click)} onClick={() => project.ai === false ? go("settings") : setRightPane("ask")} title={project.ai === false ? "AI is off. Turn on AI under Settings." : "AI is on"}>{Icon.spark({ size: 11 })} {project.ai === false ? "AI off" : "AI"}</button>
       <span className={cx(item, "text-dim")}>Local</span>
     </div>
   );

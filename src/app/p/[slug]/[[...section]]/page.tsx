@@ -8,6 +8,7 @@ import { useWorkspace } from "@/components/shell/workspace";
 import { MapSection } from "@/components/sections/map";
 import { ApisSection } from "@/components/sections/apis";
 import { DatabaseSection } from "@/components/sections/database";
+import { HealthSection } from "@/components/sections/health";
 import { FlowsSection, PlansSection, SimpleSection } from "@/components/sections/misc";
 
 export default function SectionRoute() {
@@ -35,6 +36,7 @@ export default function SectionRoute() {
   switch (section) {
     case "apis": return <ApisSection />;
     case "database": return <DatabaseSection />;
+    case "health": return <HealthSection />;
     case "flows": return <FlowsSection />;
     case "plans": return <PlansSection />;
     case "activity": case "connect": case "settings": return <SimpleSection kind={section} />;

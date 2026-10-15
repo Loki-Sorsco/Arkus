@@ -90,7 +90,7 @@ export function QueryTab({ sql, setSql, tables, engine, schemaOnly }: { sql: str
         <div className="flex-none flex items-center gap-2 px-3 h-9 border-b border-border bg-surface text-[12.5px]">
           <span className="text-muted flex-none">{Icon.spark({ size: 13 })}</span>
           {project.ai === false ? (
-            <><span className="text-muted truncate">Ask in English is off. Write SQL below, or add a free Groq key to turn a question into a query.</span><span className="flex-1" /><Link href={`/p/${project.slug}/settings`} className="btn-subtle btn-xs flex-none">Turn on AI</Link></>
+            <><span className="text-muted truncate">Ask in English is off. Write SQL below, or turn on AI under Settings to turn a question into a query.</span><span className="flex-1" /><Link href={`/p/${project.slug}/settings`} className="btn-subtle btn-xs flex-none">Turn on AI</Link></>
           ) : (
             <>
               <input className="input h-7 text-[12.5px] flex-1 min-w-0 bg-transparent border-transparent focus:border-border-strong" placeholder={tables.length ? `Ask in English, e.g. how many ${tables[0].name} were created this week?` : "Connect a database first"} value={question} disabled={!tables.length} onChange={(e) => setQuestion(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") doAsk(); }} />
@@ -106,7 +106,7 @@ export function QueryTab({ sql, setSql, tables, engine, schemaOnly }: { sql: str
         )}
         {ask && !ask.ok && (
           <div className="flex-none flex items-center gap-2 px-3 h-7 border-b border-border bg-surface text-[12px] arise min-w-0">
-            <span className="text-amber truncate">{ask.reason}{ask.reason === "AI not configured" ? ". Add a Groq key under Settings → AI, or start from:" : ""}</span>
+            <span className="text-amber truncate">{ask.reason}{ask.reason === "AI not configured" ? ". Turn on AI under Settings, or start from:" : ""}</span>
             {starters.slice(0, 3).map((s) => <Chip key={s.name} tone="muted" onClick={() => { setSql(s.sql); setRes(null); setPlan(null); }} title={s.sql}>{s.name}</Chip>)}
           </div>
         )}

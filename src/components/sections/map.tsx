@@ -6,14 +6,14 @@ import { useMemo, useState } from "react";
 import { ArchitectureMap, blastRadius } from "@/components/screens/map";
 import { TabToolbar, useWorkspace } from "@/components/shell/workspace";
 import { EmptyState, Icon, SearchInput, Spinner, Tabs } from "@/components/ui";
-import { cx, timeAgo, useLocal } from "@/lib/ui";
+import { cx, timeAgo } from "@/lib/ui";
+import { Explainer, HelpButton } from "@/components/shell/explainer";
 
 export function MapSection() {
   const { project, graph, graphLoading, selection, select, openNode } = useWorkspace();
   const [layer, setLayer] = useState<"all" | "pages" | "apis" | "db">("all");
   const [filter, setFilter] = useState("");
   const [blast, setBlast] = useState(false);
-  const [hintSeen, setHintSeen] = useLocal<boolean>("arkus:map-hint2", false);
   const empty = !graphLoading && (!graph || !graph.snapshotId);
   const sel = graph?.nodes.find((n) => n.key === selection) || null;
   const blastOn = blast && !!sel;
@@ -22,6 +22,7 @@ export function MapSection() {
   return (
     <div className="flex-1 min-h-0 flex flex-col">
       <TabToolbar title="Map" right={<>
+        <HelpButton id="map" />
         {graph?.createdAt && <span className="text-[11px] text-dim whitespace-nowrap hidden xl:inline">indexed {timeAgo(graph.createdAt)}</span>}
         {project.rootPath && <Link href={`/import?project=${project.slug}`} className="btn-subtle btn-xs whitespace-nowrap" title="Read the code again">{Icon.refresh({ size: 12 })} Re-index</Link>}
       </>}>
@@ -30,13 +31,7 @@ export function MapSection() {
         <button className={cx("btn-xs", blastOn ? "btn-danger" : "btn-ghost")} disabled={!sel} title={sel ? "Show everything that depends on the selected card" : "Select a card first"} onClick={() => setBlast((b) => !b)}>{Icon.bolt({ size: 12 })} Blast radius</button>
         {blastOn && <span className="text-[11.5px] text-red-soft whitespace-nowrap">{impacted.length ? `${n("screen:")} pages · ${n("endpoint:")} APIs · ${n("table:")} tables would be affected` : "nothing else depends on this"}</span>}
       </TabToolbar>
-      {graph?.snapshotId && !hintSeen && (
-        <div className="flex-none flex items-center gap-3 px-3 h-8 border-b border-border bg-surface-2 text-[12px] text-text-2 arise">
-          <span className="text-accent">{Icon.bolt({ size: 13 })}</span>
-          <span className="truncate">Pages call APIs, APIs read and write tables. Click a card to see what it touches; double-click to open it.</span>
-          <button className="btn-subtle btn-xs ml-auto" onClick={() => setHintSeen(true)}>Got it</button>
-        </div>
-      )}
+      {graph?.snapshotId && <Explainer id="map" />}
       <div className="flex-1 min-h-0 relative">
         {graphLoading && <div className="absolute inset-0 flex items-center justify-center"><Spinner /></div>}
         {empty && (project.mode === "designed"

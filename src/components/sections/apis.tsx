@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CodeEditorPane, OpenInEditorLink, type EditorCursor } from "@/components/screens/code-editor";
 import { TabToolbar, useWorkspace } from "@/components/shell/workspace";
+import { Explainer, HelpButton } from "@/components/shell/explainer";
 import { RequestTable, ResponseTable, useWriteup, WriteupView } from "@/components/tabs/writeup-view";
 import { Chip, EmptyState, Icon, MethodBadge, Ref, Section, Spinner, Tabs } from "@/components/ui";
 import type { GNode } from "@/lib/arkus/types";
@@ -61,12 +62,13 @@ function Detail({ ep, view, setView }: { ep: GNode; view: View; setView: (v: Vie
   return (
     <>
       <TabToolbar title={<><MethodBadge method={epMethod(ep)} /><span className="font-mono font-medium truncate">{epPath(ep)}</span></>} meta={ep.attrs?.framework ? String(ep.attrs.framework) : undefined}
-        right={<>
+        right={<><HelpButton id="apis" />
           <Tabs size="sm" value={view} onChange={setView} items={[{ id: "explain", label: "Explain" }, { id: "code", label: "Code" }, { id: "test", label: "Test" }]} />
           {ep.file && <OpenInEditorLink file={ep.file} line={ep.lineStart} />}
         </>}>
         <Chip tone={auth === true ? "green" : auth === false ? "amber" : "muted"}>{auth === true ? "auth required" : auth === false ? "public" : "auth unknown"}</Chip>
       </TabToolbar>
+      <Explainer id="apis" />
       {view === "explain" && <Explain ep={ep} onCode={() => setView("code")} />}
       {view === "code" && (hasFile ? <CodeEditorPane file={ep.file!} line={ep.lineStart} header onCursor={onCursor} /> : <EmptyState title="No source file for this endpoint" hint={!project.rootPath ? "This project has no local folder, so there is nothing to open." : "The index did not record where this route is handled."} />)}
       {view === "test" && <ApiTest ep={ep} />}

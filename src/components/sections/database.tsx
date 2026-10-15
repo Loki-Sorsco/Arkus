@@ -14,6 +14,7 @@ import { DriftTab } from "@/components/tabs/drift-tab";
 import { useDbSync } from "@/components/tabs/db-common";
 import { Chip, EmptyState, Icon, SearchInput, Spinner } from "@/components/ui";
 import { cx } from "@/lib/ui";
+import { Explainer } from "@/components/shell/explainer";
 
 const Mark = ({ c }: { c: DbColumn }) => <span className="w-3 flex-none text-center text-[10px] leading-none">{c.pk ? <span className="text-gold" title="primary key">●</span> : c.references ? <span className="text-teal" title={`references ${c.references.table}.${c.references.column}`}>◆</span> : c.secret ? <span className="text-dim" title="secret, never shown">{Icon.lock({ size: 10 })}</span> : null}</span>;
 
@@ -32,6 +33,7 @@ export function DatabaseSection() {
     <div className="flex-1 min-h-0 flex">
       <ListPane width={264}><TableList view={view} sel={sel} onConnect={() => setConnect(true)} /></ListPane>
       <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+        <Explainer id="database" />
         {view === "table" && sel && (schema.loading && !schema.tables.length ? <div className="flex-1 flex items-center justify-center"><Spinner /></div>
           : <TableTab key={sel} tab={{ id: `table:${sel}`, kind: "table", key: sel, label: table?.name || sel.replace(/^table:/, ""), params: { column, filters: params.get("filters") || "" } }} />)}
         {view === "query" && <QueryTab key={params.get("id") || "q1"} tab={{ id: "query", kind: "query", key: params.get("id") || "q1", label: "Query", params: { sql: params.get("sql") || "" } }} />}

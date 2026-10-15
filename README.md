@@ -25,8 +25,10 @@ your browser, and keeps its own data in `~/.arkus` (metadata database, encrypted
 repos). Your source folders are read in place and never copied. `npx arkus --help` lists the few flags.
 
 Everything works without AI: import, map, APIs, database browsing and editing, SQL you write, plans.
-AI (free Groq tier) adds Ask in plain English, English → SQL, flow names, writeups and AI blueprints.
-Turn it on from **More → Settings → AI** by pasting a Groq key (verified with Groq, stored encrypted).
+AI adds Ask in plain English, English → SQL, flow names, writeups, health explanations and AI blueprints.
+**More → Settings → AI** offers three choices: *Included with Arkus* (the server's key: `ARKUS_AI_PROVIDER`,
+`ARKUS_AI_KEY` or `GROQ_API_KEY`, `ARKUS_AI_MODEL`), *Use my own key* (Groq, OpenAI, Anthropic, Google Gemini or
+any OpenAI-compatible endpoint; verified with the provider, stored encrypted per user) or *Off*.
 
 Private GitHub repositories: on **Import → Git URL** switch on *Private repository* and paste a
 fine-grained token with Contents: read (also under **More → Connections → GitHub access**).
@@ -92,6 +94,9 @@ Arkus V1 is three screens, picked from the left rail (Ctrl 1 / 2 / 3):
 - **Database**: tables on the left (expand for columns), the table on the right with **Data** (edit rows, Apply) and
   **Structure**. **Query** opens the SQL console, which also takes a question in English when AI is on. **Diagram** draws the
   schema; the ⋯ menu holds history, drift, sync and connect.
+
+- **Health** (Ctrl 4): a report on security, APIs, frontend and database: what is wrong, why it matters in plain
+  words, and what to do, with Open (jump to the file or screen) and Explain (AI, when on). Runs `npm audit` too.
 
 **Ask** (Ctrl L) opens a chat about the app on the right of any screen. Flows, Plans, Activity, Connections and Settings sit
 behind **More** at the bottom of the rail. Ctrl K finds a page, API or table. Old URLs (`/overview`, `/pages`, `/requests`,

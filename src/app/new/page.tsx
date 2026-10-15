@@ -99,7 +99,7 @@ function NewProject() {
       router.replace(`/new?project=${ref.slug}`);
       const n = r.blueprint.entities.length + r.blueprint.endpoints.length + r.blueprint.pages.length;
       setTimeout(() => setReveal(false), Math.min(n, 40) * 55 + 700);
-      if (!r.aiUsed) toast({ title: "Built from the offline template", detail: "Add a Groq key under Settings → AI for an AI-designed blueprint.", kind: "warn" });
+      if (!r.aiUsed) toast({ title: "Built from the offline template", detail: "Turn on AI under Settings for an AI-designed blueprint.", kind: "warn" });
     } catch (e) { setErr((e as Error).message); }
     finally { setBusy(null); }
   };
@@ -169,7 +169,7 @@ function NewProject() {
               <span className="font-mono text-[11.5px] text-dim">Already have an app? <Link href="/import" className="link">Open a local folder instead</Link></span>
             </>
           ) : (
-            <Terminal label="A few quick questions" right={<>{questions.suggestedTemplateLabel && <Chip tone="purple">starts from {questions.suggestedTemplateLabel}</Chip>}{!questions.aiUsed && <Chip tone="muted" title="Add a Groq key under Settings → AI for questions tailored to your idea">AI offline</Chip>}</>} className="arise">
+            <Terminal label="A few quick questions" right={<>{questions.suggestedTemplateLabel && <Chip tone="purple">starts from {questions.suggestedTemplateLabel}</Chip>}{!questions.aiUsed && <Chip tone="muted" title="Turn on AI under Settings for questions tailored to your idea">AI offline</Chip>}</>} className="arise">
               <div className="flex flex-col gap-4">
                 <div className="text-[12.5px] text-muted">Answer what you know and leave the rest blank. The more specific, the better the blueprint.</div>
                 <Field label="Project name"><input className="input" value={projName} onChange={(e) => setProjName(e.target.value)} placeholder={nameFromIdea(idea)} /></Field>

@@ -17,8 +17,8 @@ import { StatusBar } from "./status-bar";
 import { CodeDrawer } from "./code-drawer";
 
 export type Env = "dev" | "preview" | "prod";
-export type Section = "map" | "apis" | "database" | "flows" | "plans" | "activity" | "connect" | "settings";
-export const SECTIONS: Section[] = ["map", "apis", "database", "flows", "plans", "activity", "connect", "settings"];
+export type Section = "map" | "apis" | "database" | "health" | "flows" | "plans" | "activity" | "connect" | "settings";
+export const SECTIONS: Section[] = ["map", "apis", "database", "health", "flows", "plans", "activity", "connect", "settings"];
 export type ProjectDetail = { id: string; name: string; slug: string; mode: string; status: string; rootPath: string | null; repoUrl: string | null; stack: { summary?: string; frameworks?: string[]; orms?: string[]; dbEngineHint?: string }; sources: { id: string; kind: string; env: string; name: string; status: string; config: Record<string, unknown>; lastError?: string | null; testedAt?: string | null }[]; snapshots: { id: string; kind: string; version: string; status: string; stats: Record<string, unknown>; createdAt: string }[]; plans: { no: number; title: string; pipeline: string; risk: string }[]; draftPlans: number; blueprint: { version: number } | null; ai?: boolean };
 export type Draft = { id: string; label: string; intent: PlanIntent };
 export type RightPane = "inspect" | "ask" | "closed" | null;
@@ -172,7 +172,7 @@ export function WorkspaceProvider({ slug, initial, children }: { slug: string; i
       const k = e.key.toLowerCase();
       if (k === "k" || k === "p") { e.preventDefault(); setPaletteOpen((o) => !o); }
       else if (k === "l") { e.preventDefault(); setRightPane((p) => (p === "ask" ? "closed" : "ask")); }
-      else if (k === "1") { e.preventDefault(); go("map"); } else if (k === "2") { e.preventDefault(); go("apis"); } else if (k === "3") { e.preventDefault(); go("database"); }
+      else if (k === "1") { e.preventDefault(); go("map"); } else if (k === "2") { e.preventDefault(); go("apis"); } else if (k === "3") { e.preventDefault(); go("database"); } else if (k === "4") { e.preventDefault(); go("health"); }
     };
     window.addEventListener("keydown", h); return () => window.removeEventListener("keydown", h);
   }, [go, setRightPane]);
