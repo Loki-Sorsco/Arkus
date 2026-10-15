@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { TabToolbar, useWorkspace } from "@/components/shell/workspace";
 import { Chip, CopyButton, Icon, Dot, Field, Panel, Spinner, useToast } from "@/components/ui";
 import { api, cx, useApi } from "@/lib/ui";
+import { setRole, useMe } from "@/lib/me";
 
 export function SettingsTab() {
   const { project, reloadProject } = useWorkspace();

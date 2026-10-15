@@ -67,7 +67,7 @@ export function ApiTest({ ep }: { ep: GNode }) {
       <div className="h-10 flex-none flex items-center gap-2 px-3 border-b border-border bg-surface">
         <MethodBadge method={entry.draft.method} className="h-7 flex-none" />
         <input className="input input-sm h-7 font-mono text-[12px] flex-1 min-w-[160px]" value={entry.draft.url} placeholder="{{baseUrl}}/path" spellCheck={false} onChange={(e) => patch({ url: e.target.value })} onKeyDown={(e) => e.key === "Enter" && send()} />
-        <button className="btn-primary btn-xs h-7 px-3" disabled={busy || (viewer && draft.method !== "GET")} onClick={send} title={viewer && draft.method !== "GET" ? "View-only mode can send GET requests only" : undefined} title="Send (Ctrl Enter)">{busy ? <Spinner /> : Icon.play({ size: 11 })} Send</button>
+        <button className="btn-primary btn-xs h-7 px-3" disabled={busy || (viewer && entry.draft.method !== "GET")} onClick={send} title={viewer && entry.draft.method !== "GET" ? "View-only mode can send GET requests only" : "Send (Ctrl Enter)"}>{busy ? <Spinner /> : Icon.play({ size: 11 })} Send</button>
         <span className="w-px h-5 bg-border mx-1 flex-none" />
         <label className="flex items-center gap-1.5 flex-none text-[11.5px] text-dim whitespace-nowrap" title={`Base URL for {{baseUrl}} in the ${ENV_LABEL[env]} environment`}>
           <span>{ENV_LABEL[env]} base</span>
