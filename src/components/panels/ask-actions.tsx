@@ -144,14 +144,16 @@ export function ActionCard({ action: a, state, onApply, onSkip }: { action: Acti
   );
 }
 
-export function PublishBar({ count, summaries, onPublished }: { count: number; summaries: string[]; onPublished: () => void }) {
+/** `state` lets a caller that already polls GET /git/publish (the APIs Code tab) feed the bar instead of a second fetch. */
+export function PublishBar({ count, summaries, onPublished, state: given }: { count: number; summaries: string[]; onPublished: () => void; state?: PublishState | null }) {
   const { project } = useWorkspace();
-  const [state, setState] = useState<PublishState | null>(null);
+  const [fetched, setFetched] = useState<PublishState | null>(null);
+  const state = given !== undefined ? given : fetched;
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<PublishResp | null>(null);
   const defaultMsg = useMemo(() => summaries.filter(Boolean).slice(0, 3).join("; ").slice(0, 120) || "Changes made in Arkus", [summaries]);
-  useEffect(() => { let on = true; api<PublishState>(`/api/projects/${project.slug}/git/publish`).then((s) => { if (on) setState(s); }).catch(() => { if (on) setState(null); }); return () => { on = false; }; }, [project.slug, count]);
+  useEffect(() => { if (given !== undefined) return; let on = true; api<PublishState>(`/api/projects/${project.slug}/git/publish`).then((s) => { if (on) setFetched(s); }).catch(() => { if (on) setFetched(null); }); return () => { on = false; }; }, [project.slug, count, given]);
   if (!project.repoUrl || !state || state.mode === "local" || !state.isRepo) return null;
   const pr = state.mode === "pr";
   const run = async () => {

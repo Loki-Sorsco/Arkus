@@ -1,8 +1,10 @@
 "use client";
 // Left pane of the APIs section: filter + the endpoint list (folders by first path segment once the
-// list is long enough), active row highlighted, "N APIs" footer.
+// list is long enough), active row highlighted, "+ New API" on the section header, "N APIs" footer with an
+// optional slot (the "not published" chip).
 import Link from "next/link";
 import { useMemo, type ReactNode } from "react";
+import { PanelSection } from "@/components/shell/side-panel";
 import { Icon, MethodBadge, SearchInput, Spinner } from "@/components/ui";
 import type { GNode } from "@/lib/arkus/types";
 import { cx, useLocal } from "@/lib/ui";
@@ -28,7 +30,7 @@ export const epPath = (n: GNode) => String(n.attrs?.path || n.name.replace(/^[A-
 export const epMethod = (n: GNode) => String(n.attrs?.method || n.name.split(" ")[0] || "GET").toUpperCase();
 const Badge = ({ n }: { n: GNode }) => <MethodBadge method={epMethod(n)} className="w-[40px] h-[15px] text-[9.5px] px-0" />;
 
-export function ApiList({ endpoints, active, onSelect, slug, loading, q, setQ }: { endpoints: GNode[]; active: string | null; onSelect: (key: string) => void; slug: string; loading: boolean; q: string; setQ: (v: string) => void }) {
+export function ApiList({ endpoints, active, onSelect, slug, loading, q, setQ, onNew, footer }: { endpoints: GNode[]; active: string | null; onSelect: (key: string) => void; slug: string; loading: boolean; q: string; setQ: (v: string) => void; onNew?: () => void; footer?: ReactNode }) {
   const [open, setOpen] = useLocal<Record<string, boolean>>("arkus:apis-folders", {});
   const ql = q.trim().toLowerCase();
   const list = useMemo(() => endpoints.filter((n) => !ql || epPath(n).toLowerCase().includes(ql) || n.name.toLowerCase().includes(ql)), [endpoints, ql]);
@@ -59,8 +61,14 @@ export function ApiList({ endpoints, active, onSelect, slug, loading, q, setQ }:
   return (
     <div className="w-[272px] flex-none bg-surface border-r border-border flex flex-col min-h-0">
       <div className="px-2 pt-2 pb-1.5 flex-none"><SearchInput value={q} onChange={setQ} placeholder="Filter APIs" /></div>
-      <div className="flex-1 min-h-0 overflow-auto py-0.5">{body()}</div>
-      <div className="h-7 flex-none flex items-center px-3 border-t border-border text-[11.5px] text-dim tabular-nums">{ql && list.length !== endpoints.length ? `${list.length} of ${endpoints.length} APIs` : `${endpoints.length} ${endpoints.length === 1 ? "API" : "APIs"}`}</div>
+      <PanelSection title="APIs" count={endpoints.length} open onToggle={() => {}} grow right={onNew && <button className="btn-icon btn-xs w-6 dev-only" title="New API" aria-label="New API" onClick={onNew}>{Icon.plus({ size: 12 })}</button>}>
+        {body()}
+      </PanelSection>
+      <div className="h-7 flex-none flex items-center gap-2 px-3 border-t border-border text-[11.5px] text-dim tabular-nums">
+        <span className="truncate">{ql && list.length !== endpoints.length ? `${list.length} of ${endpoints.length} APIs` : `${endpoints.length} ${endpoints.length === 1 ? "API" : "APIs"}`}</span>
+        <span className="flex-1" />
+        {footer}
+      </div>
     </div>
   );
 }

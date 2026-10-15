@@ -1,32 +1,53 @@
 "use client";
-// APIs section: one list (left) · one endpoint (right) · three views — Explain | Code | Test.
-// The selected endpoint and the view live in the URL (/p/<slug>/apis?sel=<endpoint key>&view=explain|code|test).
+// APIs section: one list (left) · one endpoint (right) · four views — Explain | Code | Test | Change.
+// The selected endpoint and the view live in the URL (/p/<slug>/apis?sel=<endpoint key>&view=explain|code|test|change);
+// ?new=1 opens the New API wizard. Git state (dirty files) feeds the Publish bar under the editor and the
+// "not published" chip in the list footer for projects cloned from a git URL.
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CodeEditorPane, OpenInEditorLink, type EditorCursor } from "@/components/screens/code-editor";
+import { NewApiModal } from "@/components/screens/api-builder";
+import { PublishBar, type PublishState } from "@/components/panels/ask-actions";
 import { TabToolbar, useWorkspace } from "@/components/shell/workspace";
 import { Explainer, HelpButton } from "@/components/shell/explainer";
 import { RequestTable, ResponseTable, useWriteup, WriteupView } from "@/components/tabs/writeup-view";
 import { Chip, EmptyState, Icon, MethodBadge, Ref, Section, Spinner, Tabs } from "@/components/ui";
 import type { GNode } from "@/lib/arkus/types";
-import { cx } from "@/lib/ui";
+import { useViewer } from "@/lib/me";
+import { api, cx } from "@/lib/ui";
 import { ApiList, epMethod, epPath } from "./apis-list";
+import { ApiChange } from "./apis-change";
 import { ApiTest } from "./apis-test";
 
-type View = "explain" | "code" | "test";
-const VIEWS: View[] = ["explain", "code", "test"];
+type View = "explain" | "code" | "test" | "change";
+const VIEWS: View[] = ["explain", "code", "test", "change"];
 const asView = (v: string | null): View => (VIEWS.includes(v as View) ? (v as View) : "explain");
 const urlFor = (slug: string, sel: string, view: View) => `/p/${slug}/apis?sel=${encodeURIComponent(sel)}&view=${view}`;
 
+/** Git state for the Publish bar: fetched on mount and after every save / create / apply. Null for projects without a folder. */
+function usePublishState() {
+  const { project } = useWorkspace();
+  const [state, setState] = useState<PublishState | null>(null);
+  const refresh = useCallback(async () => {
+    if (!project.rootPath || !project.repoUrl) { setState(null); return; }
+    try { setState(await api<PublishState>(`/api/projects/${project.slug}/git/publish`)); } catch { setState(null); }
+  }, [project.slug, project.rootPath, project.repoUrl]);
+  useEffect(() => { void refresh(); }, [refresh]);
+  return { state, refresh };
+}
+
 export function ApisSection() {
-  const { project, graph, graphLoading, select } = useWorkspace();
+  const { project, graph, graphLoading, select, setParams } = useWorkspace();
   const sp = useSearchParams();
   const [sel, setSel] = useState<string | null>(() => sp.get("sel"));
   const [view, setView] = useState<View>(() => asView(sp.get("view")));
   const [q, setQ] = useState("");
+  const [newOpen, setNewOpen] = useState(() => sp.get("new") === "1");
+  const publish = usePublishState();
   // Follow the URL when something else navigates (router push, back/forward).
-  const spSel = sp.get("sel"), spView = sp.get("view");
+  const spSel = sp.get("sel"), spView = sp.get("view"), spNew = sp.get("new");
   useEffect(() => { setSel(spSel); setView(asView(spView)); }, [spSel, spView]);
+  useEffect(() => { if (spNew === "1") setNewOpen(true); }, [spNew]);
 
   const endpoints = useMemo(() => (graph?.nodes || []).filter((n) => n.type === "endpoint").sort((a, b) => epPath(a).localeCompare(epPath(b)) || epMethod(a).localeCompare(epMethod(b))), [graph]);
   const ep = useMemo(() => (sel ? endpoints.find((n) => n.key === sel) || null : null), [endpoints, sel]);
@@ -39,39 +60,53 @@ export function ApisSection() {
 
   // No (valid) selection: pick the first endpoint.
   useEffect(() => { if (!ep && endpoints.length) go(endpoints[0].key, view); }, [ep, endpoints, go, view]);
+  const closeNew = useCallback(() => { setNewOpen(false); setParams({ new: undefined }); }, [setParams]);
+  const dirty = project.repoUrl && publish.state?.isRepo && publish.state.mode !== "local" ? publish.state.dirty : 0;
 
   const loading = graphLoading && !graph;
   return (
     <div className="flex-1 min-h-0 flex">
-      <ApiList endpoints={endpoints} active={ep?.key ?? null} onSelect={(k) => go(k, view)} slug={project.slug} loading={loading} q={q} setQ={setQ} />
+      <ApiList endpoints={endpoints} active={ep?.key ?? null} onSelect={(k) => go(k, view)} slug={project.slug} loading={loading} q={q} setQ={setQ} onNew={project.rootPath ? () => setNewOpen(true) : undefined}
+        footer={dirty > 0 ? <Chip tone="accent" className="cursor-pointer" title="Open the Code tab to publish" onClick={() => ep && go(ep.key, "code")}>{Icon.git({ size: 11 })} {dirty} not published</Chip> : null} />
       <div className="flex-1 min-w-0 min-h-0 flex flex-col">
         {loading ? <div className="flex-1 flex items-center justify-center gap-2 text-[12.5px] text-dim"><Spinner /> Loading map</div>
-          : !ep ? <EmptyState title={endpoints.length ? "Pick an API" : "No APIs in this map"} hint={endpoints.length ? "Choose an endpoint on the left." : "Analyse the code to find the routes your app exposes."} />
-          : <Detail key={ep.key} ep={ep} view={view} setView={(v) => go(ep.key, v)} />}
+          : !ep ? <EmptyState title={endpoints.length ? "Pick an API" : "No APIs in this map"} hint={endpoints.length ? "Choose an endpoint on the left." : "Analyse the code to find the routes your app exposes."} action={project.rootPath && !endpoints.length ? <button className="btn-primary dev-only" onClick={() => setNewOpen(true)}>{Icon.plus({ size: 13 })} New API</button> : undefined} />
+          : <Detail key={ep.key} ep={ep} view={view} setView={(v) => go(ep.key, v)} publish={publish} />}
       </div>
+      <NewApiModal open={newOpen} onClose={closeNew} onCreated={(key) => { void publish.refresh(); go(key, "code"); }} />
     </div>
   );
 }
 
-function Detail({ ep, view, setView }: { ep: GNode; view: View; setView: (v: View) => void }) {
+function Detail({ ep, view, setView, publish }: { ep: GNode; view: View; setView: (v: View) => void; publish: { state: PublishState | null; refresh: () => Promise<void> } }) {
   const { project, setEditorStatus } = useWorkspace();
+  const viewer = useViewer();
   const auth = ep.attrs?.auth;
   const hasFile = !!ep.file && !!project.rootPath;
   const onCursor = useCallback((c: EditorCursor | null) => setEditorStatus(c), [setEditorStatus]);
   useEffect(() => () => setEditorStatus(null), [setEditorStatus]);
+  const [saved, setSaved] = useState<string[]>([]);
+  const onSaved = useCallback((r: { path: string }) => { setSaved((l) => (l.includes(`Edited ${r.path}`) ? l : [...l, `Edited ${r.path}`])); void publish.refresh(); }, [publish]);
+  const upload = /-upload$/i.test(project.rootPath || "");
   return (
     <>
       <TabToolbar title={<><MethodBadge method={epMethod(ep)} /><span className="font-mono font-medium truncate">{epPath(ep)}</span></>} meta={ep.attrs?.framework ? String(ep.attrs.framework) : undefined}
         right={<><HelpButton id="apis" />
-          <Tabs size="sm" value={view} onChange={setView} items={[{ id: "explain", label: "Explain" }, { id: "code", label: "Code" }, { id: "test", label: "Test" }]} />
+          <Tabs size="sm" value={view} onChange={setView} items={[{ id: "explain", label: "Explain" }, { id: "code", label: "Code" }, { id: "test", label: "Test" }, ...(viewer ? [] : [{ id: "change" as View, label: "Change" }])]} />
           {ep.file && <OpenInEditorLink file={ep.file} line={ep.lineStart} />}
         </>}>
         <Chip tone={auth === true ? "green" : auth === false ? "amber" : "muted"}>{auth === true ? "auth required" : auth === false ? "public" : "auth unknown"}</Chip>
       </TabToolbar>
       <Explainer id="apis" />
       {view === "explain" && <Explain ep={ep} onCode={() => setView("code")} />}
-      {view === "code" && (hasFile ? <CodeEditorPane file={ep.file!} line={ep.lineStart} header onCursor={onCursor} /> : <EmptyState title="No source file for this endpoint" hint={!project.rootPath ? "This project has no local folder, so there is nothing to open." : "The index did not record where this route is handled."} />)}
+      {view === "code" && (hasFile ? <>
+        <CodeEditorPane file={ep.file!} line={ep.lineStart} header onCursor={onCursor} onSaved={onSaved} />
+        {project.repoUrl
+          ? <PublishBar count={publish.state?.dirty ?? 0} summaries={saved.length ? saved : [`Edited ${ep.file}`]} state={publish.state} onPublished={() => { setSaved([]); void publish.refresh(); }} />
+          : saved.length > 0 && <div className="flex-none border-t border-border bg-surface px-3 h-8 flex items-center text-[12px] text-muted prose">{upload ? "Saved to your Arkus copy." : <>Saved to <span className="font-mono text-text-2 mx-1">{project.rootPath}</span>. Commit it with git when you are ready.</>}</div>}
+      </> : <EmptyState title="No source file for this endpoint" hint={!project.rootPath ? "This project has no local folder, so there is nothing to open." : "The index did not record where this route is handled."} />)}
       {view === "test" && <ApiTest ep={ep} />}
+      {view === "change" && <ApiChange ep={ep} onApplied={() => { setSaved((l) => (l.includes(`Edited ${ep.file}`) ? l : [...l, `Edited ${ep.file}`])); void publish.refresh(); setView("code"); }} />}
     </>
   );
 }
